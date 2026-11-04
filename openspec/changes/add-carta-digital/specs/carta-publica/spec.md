@@ -21,6 +21,17 @@ El sistema MUST mostrar la carta a cualquier visitante sin pedir identificación
 - **WHEN** un visitante consulta la carta
 - **THEN** la página no contiene ningún formulario de registro, inicio de sesión de cliente ni petición de datos personales
 
+### Requirement: Cabecera y aviso de alergias
+La carta MUST mostrar en su cabecera el nombre del establecimiento "La Estación" y, visible al principio sin necesidad de pulsar nada, el aviso "Si tiene alguna alergia o intolerancia alimentaria, consulte a nuestro personal".
+
+#### Scenario: Nombre del establecimiento en la cabecera
+- **WHEN** un visitante consulta la carta
+- **THEN** la cabecera muestra "La Estación"
+
+#### Scenario: Aviso de alergias visible
+- **WHEN** un visitante consulta la carta
+- **THEN** antes de la primera categoría se muestra el texto "Si tiene alguna alergia o intolerancia alimentaria, consulte a nuestro personal"
+
 ### Requirement: Organización por categorías
 El sistema MUST mostrar las categorías activas en el orden fijado por el dueño y, dentro de cada categoría, sus platos activos en el orden manual fijado por el dueño. Una categoría activa sin platos activos MUST NOT mostrarse.
 
@@ -56,6 +67,19 @@ El sistema MUST mostrar todos los platos activos de cada categoría activa y MUS
 - **GIVEN** un visitante con la carta abierta
 - **WHEN** el dueño archiva un plato y el visitante recarga la carta
 - **THEN** el plato ya no aparece
+
+### Requirement: Platos agotados
+Un plato activo marcado como agotado MUST seguir mostrándose en la carta, en su posición, con su nombre, precio y alérgenos y con la etiqueta de texto "Agotado" visible. Una categoría activa cuyos platos activos están todos agotados MUST mostrarse.
+
+#### Scenario: Plato agotado en la carta
+- **GIVEN** el plato activo "Tortilla" marcado como agotado, segundo de "Raciones"
+- **WHEN** un visitante consulta la carta
+- **THEN** "Tortilla" aparece en segunda posición de "Raciones" con su precio, sus alérgenos y la etiqueta "Agotado"
+
+#### Scenario: Categoría con todos sus platos agotados
+- **GIVEN** la categoría "Postres" cuyos platos activos están todos agotados
+- **WHEN** un visitante consulta la carta
+- **THEN** la categoría "Postres" aparece con sus platos y la etiqueta "Agotado" en cada uno
 
 ### Requirement: Contenido de cada plato
 El sistema MUST mostrar en cada plato su nombre, su precio en euros con IVA incluido en formato español (coma decimal y símbolo € detrás, p. ej. "3,50 €"), su descripción corta si la tiene y su foto si la tiene. Un plato sin foto MUST mostrarse correctamente, sin imagen rota.

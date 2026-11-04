@@ -14,7 +14,7 @@ La pantalla de administración del catálogo y todas sus operaciones MUST requer
 - **THEN** el sistema le muestra la pantalla de inicio de sesión en lugar del catálogo
 
 #### Scenario: Modificación sin sesión rechazada
-- **WHEN** se intenta crear, editar, reordenar o archivar un plato o una categoría sin sesión de establecimiento
+- **WHEN** se intenta crear, editar, reordenar, marcar como agotado, archivar o recuperar un plato o una categoría sin sesión de establecimiento
 - **THEN** el sistema rechaza la operación y el catálogo no cambia
 
 ### Requirement: Crear y editar categorías
@@ -121,6 +121,47 @@ El dueño MUST poder archivar ("eliminar") un plato activo tras confirmarlo. Un 
 - **WHEN** el dueño pulsa eliminar en el plato "Croquetas" y cancela la confirmación
 - **THEN** "Croquetas" sigue activo
 
+### Requirement: Marcar platos agotados
+El dueño MUST poder marcar un plato activo como agotado y volver a marcarlo como disponible. Marcarlo MUST NOT archivarlo, cambiar su posición ni duplicarlo.
+
+#### Scenario: Marcar un plato como agotado
+- **GIVEN** el plato activo "Tortilla" disponible
+- **WHEN** el dueño lo marca como agotado
+- **THEN** "Tortilla" sigue en la lista de platos activos en su posición y la carta lo muestra con la etiqueta "Agotado"
+
+#### Scenario: Volver a marcar un plato disponible
+- **GIVEN** el plato "Tortilla" marcado como agotado
+- **WHEN** el dueño lo marca como disponible
+- **THEN** la carta muestra "Tortilla" sin la etiqueta "Agotado"
+
+### Requirement: Recuperar archivados
+La administración MUST mostrar los platos y categorías archivados y permitir recuperarlos. Un plato recuperado vuelve activo, disponible, al final de su categoría; si su categoría está archivada, el dueño MUST elegir una categoría activa al recuperarlo. Una categoría recuperada vuelve activa al final del orden y sin platos activos. El sistema MUST NOT recuperar una categoría cuyo nombre coincida con el de otra categoría activa (sin distinguir mayúsculas).
+
+#### Scenario: Ver los archivados
+- **GIVEN** el plato archivado "Croquetas" y la categoría archivada "Especiales de verano"
+- **WHEN** el dueño abre la lista de archivados
+- **THEN** ve "Croquetas" y "Especiales de verano"
+
+#### Scenario: Recuperar un plato
+- **GIVEN** el plato archivado "Croquetas" de la categoría activa "Raciones"
+- **WHEN** el dueño lo recupera
+- **THEN** "Croquetas" aparece disponible al final de "Raciones" y en la carta
+
+#### Scenario: Recuperar un plato de una categoría archivada
+- **GIVEN** el plato archivado "Horchata" de la categoría archivada "Especiales de verano"
+- **WHEN** el dueño lo recupera eligiendo la categoría "Bebidas"
+- **THEN** "Horchata" aparece al final de "Bebidas"; sin elegir categoría, el sistema no lo recupera y le pide que elija una
+
+#### Scenario: Recuperar una categoría
+- **GIVEN** la categoría archivada "Especiales de verano"
+- **WHEN** el dueño la recupera
+- **THEN** aparece al final de las categorías activas, sin platos activos, y no se muestra en la carta hasta que tenga alguno
+
+#### Scenario: Recuperar una categoría con nombre repetido
+- **GIVEN** la categoría activa "Bebidas" y una categoría archivada "bebidas"
+- **WHEN** el dueño intenta recuperar la archivada
+- **THEN** el sistema no la recupera y le indica que ya existe una categoría con ese nombre
+
 ### Requirement: Foto del plato
 El dueño MUST poder añadir, sustituir o quitar una foto por plato, en formato JPEG, PNG o WebP y de como mucho 5 MB tal como la elige en su móvil. El sistema MUST rechazar cualquier otro formato o tamaño mayor indicando el motivo, y MUST reducir la foto antes de servirla en la carta.
 
@@ -146,4 +187,4 @@ La pantalla de administración MUST poder usarse por completo desde un móvil de
 
 #### Scenario: Gestión completa desde el móvil
 - **WHEN** el dueño usa la administración en una pantalla de 360 px de ancho
-- **THEN** puede crear, editar, ordenar y archivar categorías y platos y subir fotos sin desplazamiento horizontal, con botones de al menos 48×48 px
+- **THEN** puede crear, editar, ordenar y archivar categorías y platos, marcar platos como agotados, recuperar archivados y subir fotos sin desplazamiento horizontal, con botones de al menos 48×48 px

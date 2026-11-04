@@ -63,6 +63,8 @@ Origen: **Andrés** = requisito expresado por el cliente; **Equipo** = decisión
 | 2026-11-03 | Equipo | **Orden**: categorías y platos se reordenan con botones grandes de subir/bajar, más fáciles en el móvil que arrastrar y soltar. |
 | 2026-11-03 | Equipo | **Datos del local**: la carta muestra solo el nombre "La Estación" en la cabecera. Horario, teléfono y logotipo quedan fuera de alcance. |
 | 2026-11-03 | Equipo | **Mesa en la URL**: en este cambio el identificador de mesa no se valida ni se muestra; cualquier `/mesa/<identificador>` muestra la carta. El cambio del pedido definirá qué pasa con una mesa inexistente. |
+| 2026-11-04 | Equipo | **Plato recuperado disponible**: un plato recuperado vuelve sin la marca de agotado, aunque la tuviera al archivarlo. |
+| 2026-11-04 | Equipo | **Categoría recuperada con nombre repetido**: si ya existe una categoría activa con el mismo nombre (sin distinguir mayúsculas), no se recupera; el dueño renombra antes una de las dos. |
 
 ## Impacto
 

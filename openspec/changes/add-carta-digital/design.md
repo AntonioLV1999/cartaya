@@ -28,22 +28,24 @@ Un `package.json` en la raíz; `server/` (Express, API, acceso a SQLite) y `web/
 categorias(id, nombre, posicion, archivada_en NULL|fecha)
 platos(id, categoria_id, nombre, precio_centimos INTEGER, descripcion,
        foto NULL|nombre_fichero, sin_alergenos INTEGER 0/1,
-       posicion, archivado_en NULL|fecha)
+       agotado INTEGER 0/1 DEFAULT 0, posicion, archivado_en NULL|fecha)
 plato_alergenos(plato_id, alergeno)   -- alergeno: uno de 14 códigos fijos
 sesiones(token_hash, creada_en, ultimo_uso_en)
 intentos_login(ip, momento)
 ```
 - **Precio en céntimos enteros** para evitar errores de coma flotante; el formato "3,50 €" se hace con `Intl.NumberFormat('es-ES', {style:'currency', currency:'EUR'})`.
 - **Archivado con `archivado_en`** (borrado lógico): las consultas de la carta y de la administración filtran `archivado_en IS NULL`. Nunca hay `DELETE` de platos ni categorías; la BD lo refuerza con un trigger `BEFORE DELETE` que aborta.
+- **Recuperar** es la operación inversa: `archivado_en = NULL` y `posicion = max + 1` de su ámbito. Un plato recuperado vuelve además con `agotado = 0`; si su categoría está archivada, se exige una categoría activa de destino. Una categoría recuperada vuelve vacía (sus platos ya estaban archivados, porque solo se archiva una categoría sin platos activos) y se rechaza si su nombre coincide con el de una categoría activa.
+- **Agotado** es una marca sobre un plato activo (`agotado = 1`): no cambia su posición ni su archivado; la carta lo sigue devolviendo y una categoría con todos sus platos agotados sigue considerándose no vacía.
 - **Alérgenos como lista fija en código** (`server/alergenos.js`, compartida con el frontend): códigos `gluten, crustaceos, huevos, pescado, cacahuetes, soja, leche, frutos_cascara, apio, mostaza, sesamo, sulfitos, altramuces, moluscos` con su nombre en español. Una tabla `CHECK (alergeno IN (...))` garantiza que no entran otros. No se modela como tabla editable porque la lista es legal, no del dueño.
 - **Coherencia de la declaración** (alérgenos XOR `sin_alergenos`) validada en el servicio dentro de una transacción; un plato no se guarda si no la cumple.
 - **Orden** con un entero `posicion` por ámbito (categorías globales; platos por categoría). Subir/bajar intercambia la posición con el vecino en una transacción. *Alternativa*: arrastrar y soltar → peor en móviles y para personas mayores; los botones ↑/↓ grandes son más simples.
 - Migraciones: un único fichero `schema.sql` aplicado con `CREATE TABLE IF NOT EXISTS` al arrancar y `PRAGMA user_version` para futuras versiones. SQLite en modo WAL.
 
 ### 3. API
-- `GET /api/carta` (pública): devuelve en un solo JSON las categorías activas no vacías, ordenadas, con sus platos activos ordenados (nombre, precio en céntimos, descripción, URL de foto, alérgenos o `sinAlergenos`). Cabecera `Cache-Control: no-cache` con `ETag`, para que recargar sea barato y siempre fresco.
+- `GET /api/carta` (pública): devuelve en un solo JSON las categorías activas no vacías, ordenadas, con sus platos activos ordenados (nombre, precio en céntimos, descripción, URL de foto, alérgenos o `sinAlergenos`, y `agotado`). Cabecera `Cache-Control: no-cache` con `ETag`, para que recargar sea barato y siempre fresco.
 - `POST /api/sesion`, `DELETE /api/sesion`, `GET /api/sesion` (estado).
-- `/api/admin/categorias` y `/api/admin/platos`: `GET`, `POST`, `PATCH /:id`, `POST /:id/subir`, `POST /:id/bajar`, `POST /:id/archivar`; `PUT|DELETE /api/admin/platos/:id/foto`. Todo bajo un middleware que exige sesión (401 si no la hay).
+- `/api/admin/categorias` y `/api/admin/platos`: `GET`, `POST`, `PATCH /:id`, `POST /:id/subir`, `POST /:id/bajar`, `POST /:id/archivar`, `POST /:id/recuperar`; `PUT|DELETE /api/admin/platos/:id/foto`. `PATCH /api/admin/platos/:id` acepta también `agotado` (true/false). `GET /api/admin/archivados` devuelve las categorías y platos archivados; `POST /api/admin/platos/:id/recuperar` acepta `{categoriaId}`, obligatorio si la categoría del plato está archivada (`422` si falta). Todo bajo un middleware que exige sesión (401 si no la hay).
 - Errores de validación: `422` con `{campo, mensaje}` en español, que el formulario muestra junto al campo.
 
 ### 4. Sesión de establecimiento
@@ -69,6 +71,8 @@ intentos_login(ip, momento)
 ### 7. Accesibilidad y estilo
 - CSS propio con variables: texto base 18 px (1.125rem), tamaños en `rem`, colores con contraste ≥ 7:1 (texto casi negro sobre fondo blanco cálido), botones de 48 px mínimo, maquetación de una columna fluida para soportar zoom del 200 %.
 - Alérgenos como etiquetas con **texto** (no solo iconos ni solo color) en el propio bloque del plato. "Sin alérgenos" con el mismo estilo.
+- "Agotado" como etiqueta de texto con el mismo contraste ≥ 7:1; un plato agotado no se atenúa (bajaría el contraste).
+- Cabecera con el nombre "La Estación" y, debajo, el aviso fijo de alergias antes de la primera categoría.
 - Índice de categorías fijo arriba con enlaces de ancla.
 
 ### 8. Tests
@@ -87,7 +91,7 @@ intentos_login(ip, momento)
 
 ## Riesgos / Compromisos
 
-- [Un plato archivado por error no se puede restaurar desde la interfaz] → confirmación antes de archivar; el dato se conserva y se puede restaurar a mano en la BD. Restaurar se valorará en otro cambio.
+- [Un plato o categoría archivado por error] → confirmación antes de archivar y recuperación desde la lista de archivados de la administración.
 - [Lighthouse en CI no es un móvil real] → además se hará una comprobación manual en el móvil de Andrés con 4G antes de dar el cambio por terminado.
 - [Fotos en disco fuera de la BD] → la copia de seguridad debe incluir `data/` completo (BD + fotos); se documenta en el README.
 - [Bloqueo por IP compartida del local] → el bloqueo dura solo 15 minutos y solo se activa con 5 fallos.
