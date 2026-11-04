@@ -65,7 +65,6 @@ function lighthouse(url) {
       `--url=${url}`,
       '--numberOfRuns=3',
       `--chromePath=${chromePath}`,
-      `--settings.chromeFlags=--headless=new --no-sandbox`,
       ...Object.entries(ajustes).flatMap(([k, v]) =>
         typeof v === 'object' && !Array.isArray(v)
           ? Object.entries(v).map(([k2, v2]) => `--settings.${k}.${k2}=${v2}`)
