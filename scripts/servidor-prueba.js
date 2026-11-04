@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { abrirBD } from '../server/db.js';
 import { crearApp } from '../server/app.js';
 import { hashPassword } from '../server/password.js';
+import { crearMesas } from '../server/mesas.js';
 import { sembrar } from './seed.js';
 
 export const PASSWORD_PRUEBA = 'prueba-e2e-2026';
@@ -16,17 +17,25 @@ export function arrancarServidorPrueba({ puerto = 4321, rendimiento = false, ret
   const dataDir = mkdtempSync(join(tmpdir(), 'cartaya-prueba-'));
   sembrar({ dataDir, rendimiento });
   const db = abrirBD(join(dataDir, 'cartaya.db'));
+  // Una mesa de prueba para medir también la carga desde una dirección de mesa.
+  const mesa = crearMesas(db).crear({ nombre: 'Mesa de prueba' });
   const app = crearApp({ db, passwordHash: hashPassword(PASSWORD_PRUEBA), dataDir });
   const raiz = express();
   if (retrasoFotos > 0) {
     // Simula fotos que tardan en servirse (escenario «Las fotos no bloquean el texto»).
     raiz.use('/fotos', (req, res, next) => setTimeout(next, retrasoFotos));
   }
+  // Solo en el servidor de pruebas: cambiar el estado de un pedido como lo hará el panel de cocina
+  // (escenario «El estado se actualiza sin recargar»).
+  raiz.post('/prueba/pedidos/:token/estado', express.json(), (req, res) => {
+    res.json(app.locals.pedidos.cambiarEstado(req.params.token, req.body.estado));
+  });
   raiz.use(app);
   return new Promise((resolver) => {
     const servidor = raiz.listen(puerto, () => {
       resolver({
         url: `http://localhost:${puerto}`,
+        rutaMesa: `/mesa/${mesa.codigo}`,
         cerrar: () =>
           new Promise((ok) => {
             servidor.closeAllConnections?.();

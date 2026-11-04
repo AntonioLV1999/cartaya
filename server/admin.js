@@ -1,11 +1,12 @@
 import express from 'express';
 import { MAX_FOTO, TIPOS_FOTO, MENSAJE_FORMATO } from './fotos.js';
 import { ErrorValidacion } from './errores.js';
+import { svgQR, urlMesa } from './qr.js';
 
 const id = (req) => Number(req.params.id);
 
 /** Rutas de /api/admin. Se montan detrás del middleware que exige sesión. */
-export function crearRutasAdmin({ catalogo, fotos }) {
+export function crearRutasAdmin({ catalogo, fotos, mesas, urlPublica }) {
   const r = express.Router();
 
   // Las rutas de administración solo aceptan JSON (las fotos, image/*): refuerza SameSite contra CSRF.
@@ -66,6 +67,22 @@ export function crearRutasAdmin({ catalogo, fotos }) {
 
   // ---------- Archivados ----------
   r.get('/archivados', (req, res) => res.json(catalogo.listarArchivados()));
+
+  // ---------- Mesas ----------
+  // Sin CARTAYA_URL_PUBLICA se usa el origen de la petición (válido en desarrollo).
+  const base = (req) => urlPublica || `${req.protocol}://${req.get('host')}`;
+  const conUrl = (req, m) => ({ ...m, url: urlMesa(base(req), m.codigo) });
+  r.get('/mesas', (req, res) => res.json(mesas.listar().map((m) => conUrl(req, m))));
+  r.post('/mesas', (req, res) => res.status(201).json(conUrl(req, mesas.crear(req.body))));
+  r.patch('/mesas/:id', (req, res) => res.json(conUrl(req, mesas.renombrar(id(req), req.body))));
+  r.post('/mesas/:id/archivar', (req, res) => {
+    mesas.archivar(id(req));
+    res.status(204).end();
+  });
+  r.get('/mesas/:id/qr.svg', (req, res) => {
+    const m = mesas.mesaActiva(id(req));
+    res.set('Cache-Control', 'private, no-cache').type('image/svg+xml').send(svgQR(urlMesa(base(req), m.codigo)));
+  });
 
   return r;
 }

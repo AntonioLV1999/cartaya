@@ -3,7 +3,7 @@ import { api } from './api.js';
 
 const plural = (n) => (n === 1 ? 'su plato' : `sus ${n} platos`);
 
-function FormNombre({ id, etiqueta, inicial = '', textoBoton, onGuardar, onCancelar }) {
+export function FormNombre({ id, etiqueta, inicial = '', textoBoton, onGuardar, onCancelar, maxLength }) {
   const [nombre, setNombre] = useState(inicial);
   const [error, setError] = useState(null);
 
@@ -26,6 +26,7 @@ function FormNombre({ id, etiqueta, inicial = '', textoBoton, onGuardar, onCance
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
           autoFocus={Boolean(inicial)}
+          maxLength={maxLength}
         />
         {error && (
           <p id={`${id}-error`} className="error" role="alert">

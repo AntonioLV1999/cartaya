@@ -22,6 +22,7 @@ const app = crearApp({
   passwordHash,
   dataDir,
   produccion,
+  urlPublica: process.env.CARTAYA_URL_PUBLICA || null,
   trustProxy: trustProxy === undefined ? false : /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy,
 });
 

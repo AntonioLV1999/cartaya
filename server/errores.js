@@ -8,6 +8,14 @@ export class ErrorValidacion extends Error {
   }
 }
 
+/** 409: la carta cambió mientras el visitante decidía. Lleva los platos retirados y los precios nuevos. */
+export class ErrorCartaCambiada extends ErrorValidacion {
+  constructor(mensaje, { retirados, precios }) {
+    super(null, mensaje, 409);
+    this.extra = { motivo: 'carta-cambiada', retirados, precios };
+  }
+}
+
 export class NoEncontrado extends ErrorValidacion {
   constructor(mensaje = 'No se ha encontrado.') {
     super(null, mensaje, 404);

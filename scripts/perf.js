@@ -95,19 +95,22 @@ function lighthouse(url) {
 /** Mediana de las ejecuciones, como hace Lighthouse CI. */
 const mediana = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 
+/** Mide la carta en /carta y en la dirección de una mesa (con el pedido, add-pedidos-mesa). */
 async function escenario(nombre, opciones) {
   const servidor = await arrancarServidorPrueba({ puerto: 4400, rendimiento: true, ...opciones });
   try {
-    const ejecuciones = lighthouse(`${servidor.url}/carta`);
-    const texto = mediana(ejecuciones.map((e) => e.textoVisible));
-    const fcp = mediana(ejecuciones.map((e) => e.fcp));
-    comprobar(
-      nombre,
-      texto < UMBRAL_MS,
-      `texto completo visible en ${Math.round(texto)} ms (FCP ${Math.round(fcp)} ms; ejecuciones: ${ejecuciones
-        .map((e) => Math.round(e.textoVisible))
-        .join(', ')} ms)`,
-    );
+    for (const [donde, ruta] of [['/carta', '/carta'], ['dirección de mesa', servidor.rutaMesa]]) {
+      const ejecuciones = lighthouse(`${servidor.url}${ruta}`);
+      const texto = mediana(ejecuciones.map((e) => e.textoVisible));
+      const fcp = mediana(ejecuciones.map((e) => e.fcp));
+      comprobar(
+        `${nombre} (${donde})`,
+        texto < UMBRAL_MS,
+        `texto completo visible en ${Math.round(texto)} ms (FCP ${Math.round(fcp)} ms; ejecuciones: ${ejecuciones
+          .map((e) => Math.round(e.textoVisible))
+          .join(', ')} ms)`,
+      );
+    }
   } finally {
     await servidor.cerrar();
   }

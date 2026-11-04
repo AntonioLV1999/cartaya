@@ -2,8 +2,8 @@
 
 Carta digital de **La Estación**. El cliente la consulta desde el QR de su mesa sin registrarse ni instalar nada, y el dueño la mantiene al día desde su móvil.
 
-- Carta pública: `/`, `/carta` y `/mesa/<identificador>`.
-- Administración del catálogo: `/admin`, protegida con la contraseña de establecimiento.
+- Carta pública: `/` y `/carta` (solo consulta) y `/mesa/<código>` (carta de una mesa, desde la que se pide). El código de cada mesa es aleatorio y va en su QR.
+- Administración del catálogo y de las mesas (con sus QR para imprimir): `/admin`, protegida con la contraseña de establecimiento.
 
 Los requisitos están en `openspec/` (specs y cambios de OpenSpec), que es la fuente de verdad del comportamiento.
 
@@ -66,6 +66,7 @@ El servidor escucha en el puerto 3000 (variable `PORT`) y sirve la carta, la adm
 | `CARTAYA_DATA_DIR` | Carpeta de datos: base de datos `cartaya.db` y fotos en `fotos/`. | `./data` |
 | `PORT` | Puerto del servidor. | `3000` |
 | `NODE_ENV` | `production` activa la cookie `Secure`. | — |
+| `CARTAYA_URL_PUBLICA` | Dirección pública del local (p. ej. `https://laestacion.cartaya.es`). Es la que llevan los QR impresos de las mesas: configúrela **antes** de imprimirlos. Sin ella se usa la dirección con la que se abre la administración (válido en desarrollo). | — |
 | `CARTAYA_TRUST_PROXY` | Si hay un proxy inverso delante (p. ej. `1` o `loopback`), para que el límite de intentos use la IP real del cliente. | desactivado |
 
 ### Cambiar la contraseña
@@ -104,6 +105,17 @@ npm run test:perf   # tiempo de carga con Lighthouse CI (móvil de gama media, 4
 Antes de la primera ejecución de `test:e2e` o `test:perf`, instale el navegador de pruebas: `npx playwright install chromium`.
 
 Cada escenario de las specs (`#### Scenario: …`) tiene un test con su mismo nombre. `npm run test:escenarios` lo comprueba y falla si falta alguno.
+
+## Dependencias
+
+Además del stack fijado (Express, better-sqlite3, React, Vite), en producción solo se usan:
+
+| Dependencia | Para qué |
+|---|---|
+| `compression` | Comprime la API y los estáticos: clave para cargar la carta en menos de 2 s con 4G. |
+| `qrcode-generator` | Genera en el servidor el QR de cada mesa. JavaScript puro, sin dependencias, licencia MIT. Codificar QR a mano (Reed-Solomon, máscaras, versiones) es delicado, y un QR mal generado es una pegatina inservible. |
+
+Las de desarrollo (supertest, Vitest, Testing Library, Playwright, axe-core, Lighthouse CI) solo sirven para los tests.
 
 ## Estructura
 

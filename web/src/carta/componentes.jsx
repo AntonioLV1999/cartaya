@@ -32,17 +32,60 @@ export function Indice({ categorias }) {
   );
 }
 
-export function Categoria({ categoria }) {
+export function Categoria({ categoria, accionPlato }) {
   const idTitulo = `${idCategoria(categoria.id)}-titulo`;
   return (
     <section className="categoria" id={idCategoria(categoria.id)} aria-labelledby={idTitulo}>
       <h2 id={idTitulo}>{categoria.nombre}</h2>
       <ul className="platos">
         {categoria.platos.map((p) => (
-          <Plato key={p.id} plato={p} />
+          <Plato key={p.id} plato={p} accion={accionPlato?.(p)} />
         ))}
       </ul>
     </section>
+  );
+}
+
+/** Lista de alérgenos de un plato, siempre visible (o «Sin alérgenos»). */
+export function Alergenos({ plato }) {
+  return (
+    <ul className="etiquetas" aria-label="Alérgenos">
+      {plato.sinAlergenos ? (
+        <li className="etiqueta">Sin alérgenos</li>
+      ) : (
+        plato.alergenos.map((a) => (
+          <li key={a} className="etiqueta">
+            {nombreAlergeno(a)}
+          </li>
+        ))
+      )}
+    </ul>
+  );
+}
+
+/**
+ * Página de la carta: cabecera, índice y categorías. `antes` va tras la cabecera (mesa, avisos),
+ * `accionPlato` añade a cada plato su control de pedido y `despues` va tras la carta (barra del pedido).
+ */
+export function VistaCarta({ carta, error = false, antes = null, accionPlato, despues = null }) {
+  return (
+    <>
+      <div className="contenedor">
+        <Cabecera />
+        {antes}
+      </div>
+      {carta && carta.categorias.length > 0 && <Indice categorias={carta.categorias} />}
+      <main className="contenedor">
+        {error && <p className="estado" role="alert">No se ha podido cargar la carta. Recargue la página.</p>}
+        {!error && !carta && <p className="estado">Cargando la carta…</p>}
+        {carta && carta.categorias.length === 0 && <p className="estado">La carta está vacía por ahora.</p>}
+        {carta?.categorias.map((c) => <Categoria key={c.id} categoria={c} accionPlato={accionPlato} />)}
+      </main>
+      <footer className="contenedor pie">
+        <p>Precios con IVA incluido.</p>
+      </footer>
+      {despues}
+    </>
   );
 }
 
@@ -63,7 +106,7 @@ function Foto({ src, nombre }) {
   );
 }
 
-export function Plato({ plato }) {
+export function Plato({ plato, accion = null }) {
   return (
     <li className="plato" data-plato={plato.nombre}>
       <div className="plato__cabecera">
@@ -77,17 +120,8 @@ export function Plato({ plato }) {
       )}
       {plato.descripcion && <p className="plato__descripcion">{plato.descripcion}</p>}
       <Foto src={plato.foto} nombre={plato.nombre} />
-      <ul className="etiquetas" aria-label="Alérgenos">
-        {plato.sinAlergenos ? (
-          <li className="etiqueta">Sin alérgenos</li>
-        ) : (
-          plato.alergenos.map((a) => (
-            <li key={a} className="etiqueta">
-              {nombreAlergeno(a)}
-            </li>
-          ))
-        )}
-      </ul>
+      <Alergenos plato={plato} />
+      {accion}
     </li>
   );
 }

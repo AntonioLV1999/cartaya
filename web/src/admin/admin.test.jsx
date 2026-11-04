@@ -5,6 +5,7 @@ import { Platos } from './Platos.jsx';
 import { FormPlato } from './FormPlato.jsx';
 import { Archivados } from './Archivados.jsx';
 import { Login } from './Login.jsx';
+import { Mesas } from './Mesas.jsx';
 import { ALERGENOS } from '../../../server/alergenos.js';
 import { reducirFoto, MENSAJE_FORMATO, MENSAJE_TAMANO } from './fotos.js';
 
@@ -317,4 +318,86 @@ test('Archivados: el error de nombre repetido aparece junto a la categoría', as
   const fila = screen.getByText('bebidas').closest('li');
   fireEvent.click(within(fila).getByRole('button', { name: 'Recuperar bebidas' }));
   expect((await within(fila).findByRole('alert')).textContent).toBe('Ya existe una categoría con ese nombre.');
+});
+
+// ---------- Mesas (add-pedidos-mesa) ----------
+
+const mesas = [
+  { id: 1, nombre: 'Mesa 1', codigo: 'k3f9q2txab', url: 'http://localhost/mesa/k3f9q2txab' },
+  { id: 2, nombre: 'Mesa 2', codigo: 'p7m4w8zcde', url: 'http://localhost/mesa/p7m4w8zcde' },
+  { id: 3, nombre: 'Terraza 1', codigo: 'h2n6r5vsfg', url: 'http://localhost/mesa/h2n6r5vsfg' },
+];
+
+test('Cancelar el archivado de una mesa', async () => {
+  const llamadas = simularApi({});
+  const confirmar = vi.fn(() => false);
+  render(<Mesas mesas={mesas} operar={operar} confirmar={confirmar} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar Terraza 1' }));
+  expect(confirmar.mock.calls[0][0]).toMatch(/¿Eliminar la mesa «Terraza 1»\?/);
+  await new Promise((r) => setTimeout(r, 0));
+  expect(llamadas).toEqual([]);
+  expect(screen.getByText('Terraza 1')).toBeTruthy();
+});
+
+test('Mesas: confirmar el archivado llama a la API', async () => {
+  const llamadas = simularApi({ 'POST /api/admin/mesas/3/archivar': () => [204] });
+  render(<Mesas mesas={mesas} operar={operar} confirmar={() => true} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar Terraza 1' }));
+  await waitFor(() => expect(llamadas.map((l) => `${l.metodo} ${l.url}`)).toEqual(['POST /api/admin/mesas/3/archivar']));
+});
+
+test('Mesas: crear y renombrar, con el error junto al campo', async () => {
+  const llamadas = simularApi({
+    'POST /api/admin/mesas': () => [422, { campo: 'nombre', mensaje: 'Ya existe una mesa con ese nombre.' }],
+    'PATCH /api/admin/mesas/1': () => [200, {}],
+  });
+  render(<Mesas mesas={mesas} operar={operar} />);
+  const campo = screen.getByLabelText(/Nueva mesa/);
+  expect(campo.getAttribute('maxlength')).toBe('30');
+  fireEvent.change(campo, { target: { value: 'mesa 2' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Añadir mesa' }));
+  const error = await screen.findByText('Ya existe una mesa con ese nombre.');
+  expect(campo.getAttribute('aria-describedby')).toBe(error.id);
+  fireEvent.click(screen.getByRole('button', { name: 'Renombrar Mesa 1' }));
+  fireEvent.change(screen.getByLabelText('Nuevo nombre de «Mesa 1»'), { target: { value: 'Ventana 1' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar nombre' }));
+  await waitFor(() => expect(llamadas).toHaveLength(2));
+  expect(JSON.parse(llamadas[1].cuerpo)).toEqual({ nombre: 'Ventana 1' });
+});
+
+test('QR de una mesa', () => {
+  render(<Mesas mesas={mesas} operar={operar} />);
+  expect(screen.queryByAltText('QR de Mesa 2')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Ver QR de Mesa 2' }));
+  const qr = screen.getByAltText('QR de Mesa 2');
+  expect(qr.getAttribute('src')).toBe('/api/admin/mesas/2/qr.svg');
+  const figura = qr.closest('figure');
+  expect(within(figura).getByText(/Mesa 2/)).toBeTruthy();
+  expect(within(figura).getByText('http://localhost/mesa/p7m4w8zcde')).toBeTruthy();
+});
+
+test('Imprimir todos los QR', async () => {
+  const imprimir = vi.fn();
+  render(<Mesas mesas={mesas} operar={operar} imprimir={imprimir} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Imprimir todos los QR' }));
+  const hojas = document.querySelectorAll('.hojas-qr .hoja-qr');
+  expect(hojas).toHaveLength(3);
+  expect(document.body.classList.contains('imprimir-qr')).toBe(true);
+  hojas.forEach((hoja, i) => {
+    expect(within(hoja).getByRole('heading').textContent).toBe(mesas[i].nombre);
+    expect(within(hoja).getByAltText(`QR de ${mesas[i].nombre}`).getAttribute('src')).toBe(`/api/admin/mesas/${mesas[i].id}/qr.svg`);
+    expect(within(hoja).getByText('Escanee para ver la carta y pedir')).toBeTruthy();
+  });
+  await waitFor(() => expect(imprimir).toHaveBeenCalledOnce());
+  // Al terminar, las hojas desaparecen.
+  await waitFor(() => expect(document.querySelectorAll('.hoja-qr')).toHaveLength(0));
+  expect(document.body.classList.contains('imprimir-qr')).toBe(false);
+});
+
+test('Mesas: imprimir el QR de una sola mesa', async () => {
+  const imprimir = vi.fn();
+  render(<Mesas mesas={mesas} operar={operar} imprimir={imprimir} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Imprimir QR de Terraza 1' }));
+  expect([...document.querySelectorAll('.hoja-qr')].map((h) => h.dataset.mesa)).toEqual(['Terraza 1']);
+  await waitFor(() => expect(imprimir).toHaveBeenCalledOnce());
 });

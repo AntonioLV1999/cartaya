@@ -10,26 +10,59 @@ test('Consulta de la carta sin identificación', async ({ page }) => {
   await expect(page.getByLabel('Contraseña de establecimiento')).toHaveCount(0);
 });
 
-test('Entrada desde el QR de una mesa', async ({ page }) => {
+/** Crea una mesa activa por la API y devuelve su dirección de mesa. */
+async function crearMesa(baseURL, nombre) {
+  const api = await apiConSesion(baseURL);
+  const r = await api.post('/api/admin/mesas', { data: { nombre } });
+  expect(r.status()).toBe(201);
+  const mesa = await r.json();
+  await api.dispose();
+  return { ...mesa, ruta: `/mesa/${mesa.codigo}` };
+}
+
+/** Texto de las categorías y platos de la carta, sin los controles del pedido. */
+const textoDeLaCarta = (page) =>
+  page.$$eval('main .categoria', (cs) =>
+    cs.map((c) => {
+      const copia = c.cloneNode(true);
+      copia.querySelectorAll('.plato__pedir').forEach((x) => x.remove());
+      return copia.innerText;
+    }),
+  );
+
+test('Entrada desde el QR de una mesa', async ({ page, baseURL }) => {
+  const mesa = await crearMesa(baseURL, 'Mesa QR e2e');
+  await page.goto('/carta');
+  await esperarCarta(page);
+  const carta = await textoDeLaCarta(page);
+  await page.goto(mesa.ruta);
+  await expect(page.getByText('Mesa QR e2e')).toBeVisible();
+  expect(await textoDeLaCarta(page)).toEqual(carta);
+  await page.goto('/');
+  await esperarCarta(page);
+  expect(await textoDeLaCarta(page)).toEqual(carta);
+});
+
+test('Dirección de mesa con código desconocido', async ({ page }) => {
   await page.goto('/carta');
   await esperarCarta(page);
   const carta = await page.locator('body').innerText();
   await page.goto('/mesa/7');
   await esperarCarta(page);
   expect(await page.locator('body').innerText()).toBe(carta);
-  await page.goto('/');
-  await esperarCarta(page);
-  expect(await page.locator('body').innerText()).toBe(carta);
 });
 
-test('Sin registro del cliente final', async ({ page }) => {
-  await page.goto('/mesa/7');
-  await esperarCarta(page);
-  await expect(page.locator('form')).toHaveCount(0);
-  await expect(page.locator('input, textarea, select')).toHaveCount(0);
-  const texto = (await page.locator('body').innerText()).toLowerCase();
-  for (const palabra of ['regístrese', 'registrarse', 'crear cuenta', 'iniciar sesión', 'correo', 'teléfono', 'contraseña']) {
-    expect(texto).not.toContain(palabra);
+test('Sin registro del cliente final', async ({ page, baseURL }) => {
+  const mesa = await crearMesa(baseURL, 'Mesa registro e2e');
+  for (const ruta of ['/carta', '/mesa/7', mesa.ruta]) {
+    await page.goto(ruta);
+    await esperarCarta(page);
+    await expect(page.locator('form')).toHaveCount(0);
+    await expect(page.locator('input, textarea, select')).toHaveCount(0);
+    const texto = (await page.locator('body').innerText()).toLowerCase();
+    for (const palabra of ['regístrese', 'registrarse', 'crear cuenta', 'iniciar sesión', 'correo', 'teléfono', 'contraseña']) {
+      expect(texto).not.toContain(palabra);
+    }
   }
 });
 

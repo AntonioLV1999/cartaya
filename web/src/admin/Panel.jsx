@@ -3,10 +3,12 @@ import { api } from './api.js';
 import { Categorias } from './Categorias.jsx';
 import { Platos } from './Platos.jsx';
 import { Archivados } from './Archivados.jsx';
+import { Mesas } from './Mesas.jsx';
 
 const PESTANAS = [
   ['platos', 'Platos'],
   ['categorias', 'Categorías'],
+  ['mesas', 'Mesas'],
   ['archivados', 'Archivados'],
 ];
 
@@ -18,12 +20,13 @@ export function Panel({ onSalir, onSesionCaducada, pestanaInicial = 'platos' }) 
 
   const recargar = useCallback(async () => {
     try {
-      const [categorias, platos, archivados] = await Promise.all([
+      const [categorias, platos, archivados, mesas] = await Promise.all([
         api('GET', '/api/admin/categorias'),
         api('GET', '/api/admin/platos'),
         api('GET', '/api/admin/archivados'),
+        api('GET', '/api/admin/mesas'),
       ]);
-      setDatos({ categorias, platos, archivados });
+      setDatos({ categorias, platos, archivados, mesas });
       setErrorCarga(null);
     } catch (e) {
       if (e.status === 401) onSesionCaducada();
@@ -100,6 +103,7 @@ export function Panel({ onSalir, onSesionCaducada, pestanaInicial = 'platos' }) 
         {!datos && !errorCarga && <p className="estado">Cargando…</p>}
         {datos && pestana === 'platos' && <Platos datos={datos} operar={operar} />}
         {datos && pestana === 'categorias' && <Categorias categorias={datos.categorias} operar={operar} />}
+        {datos && pestana === 'mesas' && <Mesas mesas={datos.mesas} operar={operar} />}
         {datos && pestana === 'archivados' && (
           <Archivados archivados={datos.archivados} categorias={datos.categorias} operar={operar} />
         )}
