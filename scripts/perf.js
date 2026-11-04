@@ -8,7 +8,7 @@
 //    aparece en menos de 2 s.
 //  - «Las fotos no bloquean el texto»: con fotos que tardan 5 s en servirse, el texto
 //    sigue apareciendo en menos de 2 s.
-// Además comprueba que el JS de la carta pesa como mucho 60 KB comprimido con gzip (design.md).
+// Además comprueba que el JS de la carta pesa como mucho 60 KB transferidos con brotli (design.md).
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';

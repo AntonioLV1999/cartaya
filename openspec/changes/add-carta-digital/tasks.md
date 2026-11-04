@@ -22,7 +22,7 @@
 - [x] 3.4 Implementar el middleware que exige sesión en `/api/admin/*` (401 sin sesión); verificar con el test "Modificación sin sesión rechazada" sobre cada ruta de administración
 - [x] 3.5 Verificar con el test "Sin contraseña en claro" que, tras varios inicios de sesión, la contraseña no aparece en la BD, en la configuración ni en la salida de registros del servidor
 - [x] 3.6 Crear la pantalla de inicio de sesión de `admin.html` (campo de contraseña, mensaje "Contraseña incorrecta", aviso de bloqueo) y el botón "Cerrar sesión"; verificar con el test e2e "Acceso sin sesión"
-- [ ] 3.7 Documentar en `README.md` cómo generar el hash y configurar `CARTAYA_PASSWORD_HASH`; verificar que siguiendo el README se inicia sesión en una instalación limpia
+- [x] 3.7 Documentar en `README.md` cómo generar el hash y configurar `CARTAYA_PASSWORD_HASH`; verificar que siguiendo el README se inicia sesión en una instalación limpia
 
 ## 4. API del catálogo (spec `catalogo`)
 
@@ -44,7 +44,7 @@
 - [x] 6.2 Crear `carta.html` con `<link rel="preload" href="/api/carta">` y los componentes de cabecera ("La Estación" y aviso de alergias), índice de categorías, categoría y plato (nombre, precio formateado, descripción, foto `loading="lazy"` con dimensiones fijas y ocultación si falla, alérgenos como etiquetas de texto o "Sin alérgenos", etiqueta "Agotado"); verificar con tests de componente "Nombre del establecimiento en la cabecera", "Aviso de alergias visible", "Plato con todos sus datos", "Plato sin foto", "Plato con alérgenos", "Plato sin alérgenos" y "Plato agotado en la carta"
 - [x] 6.3 Verificar con tests e2e en 360 px: "Entrada desde el QR de una mesa", "Sin registro del cliente final", "Ningún plato sin información de alérgenos", "Navegación entre categorías", "Tamaño de texto y contraste", "Texto ampliado" y "Los cambios del catálogo se reflejan al recargar"
 - [ ] 6.4 Verificar con Lighthouse CI (perfil móvil, 4G simulado, semilla de 150 platos con foto) los escenarios "Carga en móvil de gama media con 4G" y "Las fotos no bloquean el texto", y que el JS de la carta pesa ≤ 60 KB transferidos con brotli
-- [ ] 6.5 Precomprimir en el build los JS y CSS (`.br` calidad 11 y `.gz`) con `zlib` y servir desde Express la variante que acepte el navegador, con `Vary: Accept-Encoding`; verificar con tests de `supertest` que se sirve `.br`, `.gz` o el original según `Accept-Encoding` con el `Content-Type` correcto
+- [x] 6.5 Precomprimir en el build los JS y CSS (`.br` calidad 11 y `.gz`) con `zlib` y servir desde Express la variante que acepte el navegador, con `Vary: Accept-Encoding`; verificar con tests de `supertest` que se sirve `.br`, `.gz` o el original según `Accept-Encoding` con el `Content-Type` correcto
 
 ## 7. Interfaz de administración
 
@@ -58,8 +58,8 @@
 ## 8. Verificación integrada
 
 - [ ] 8.1 Ejecutar `npm test`, `npm run test:e2e` y `npm run test:perf` y verificar que todos pasan y que cada escenario de las tres specs tiene un test con su mismo nombre (comprobación por script que cruza los nombres de `#### Scenario:` con los nombres de test)
-- [ ] 8.2 Comprobar a mano en un móvil real con 4G que la carta carga en menos de 2 s y que la administración se usa con comodidad; anotar el resultado en el PR
-- [ ] 8.3 Documentar en `README.md` el arranque, la semilla y la copia de seguridad de `data/` (BD + fotos); verificar que el README permite levantar el proyecto desde cero
+- [x] 8.2 Comprobar a mano en un móvil real con 4G que la carta carga en menos de 2 s y que la administración se usa con comodidad; anotar el resultado en el PR
+- [x] 8.3 Documentar en `README.md` el arranque, la semilla y la copia de seguridad de `data/` (BD + fotos); verificar que el README permite levantar el proyecto desde cero
 
 ## Seguimiento del flujo
 
