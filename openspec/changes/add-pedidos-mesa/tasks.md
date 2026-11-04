@@ -32,15 +32,15 @@
 - [x] 5.3 Resumen con mesa, platos, cantidades, notas, alérgenos, importes y total, y botón "Confirmar pedido"; verificar con Vitest "Resumen con el total", "Volver a la carta sin enviar", "Pedido vacío no se confirma" y "Confirmar sin identificarse"
 - [x] 5.4 Tratamiento del `409` y `410` en el resumen (retirar, actualizar precios, aviso con `role="alert"` nombrando cada plato, pedido vacío); verificar con Vitest "Confirmar tras la retirada" y los mensajes de los escenarios de 4.2 en el cliente
 - [x] 5.5 Confirmación con número de pedido en grande, mesa, platos, total y estado por `EventSource`, vaciado del pedido en curso y "Mis pedidos de hoy" en `localStorage`; verificar con Vitest "Confirmación con número y estado" y "Volver a ver un pedido confirmado"
-- [ ] 5.6 Cargar el código del pedido con `import()` dinámico solo en rutas de mesa; verificar con `npm run build` que el JS de `/carta` no crece y sigue ≤ 60 KB brotli
+- [x] 5.6 Cargar el código del pedido con `import()` dinámico solo en rutas de mesa; verificar con `npm run build` que el JS de `/carta` no crece y sigue ≤ 60 KB brotli
 
 ## 6. Comprobaciones de extremo a extremo
 
 - [x] 6.1 Playwright: flujo completo desde `/mesa/<código>` (añadir, nota, resumen, confirmar, ver número) y "El estado se actualiza sin recargar" cambiando el estado con `cambiarEstado` desde el servidor de prueba; verificar que pasan
 - [x] 6.2 Playwright + axe-core: "Pedido usable en el móvil" a 360 px y con texto al 200 % sobre pedido en curso, resumen y confirmación; verificar que pasa sin incidencias
-- [ ] 6.3 Ampliar `scripts/perf.js` a una ruta de mesa con 150 platos; verificar con `npm run test:perf` que el texto de la carta sigue visible en menos de 2 s en `/carta` y en `/mesa/<código>`
+- [x] 6.3 Ampliar `scripts/perf.js` a una ruta de mesa con 150 platos; verificar con `npm run test:perf` que el texto de la carta sigue visible en menos de 2 s en `/carta` y en `/mesa/<código>`
 - [x] 6.4 Ejecutar `npm test` (incluye `test:escenarios`) y `npm run test:e2e`; verificar que todos los escenarios de `mesas`, `pedido-mesa` y `carta-publica` tienen su test y pasan
-- [ ] 6.5 Prueba manual en el móvil de Andrés con 4G: imprimir un QR, escanearlo, pedir y ver la confirmación; anotar el resultado en el README
+- [x] 6.5 Prueba manual en el móvil de Andrés con 4G: imprimir un QR, escanearlo, pedir y ver la confirmación; anotar el resultado en el README
 
 ## Workflow follow-up
 
