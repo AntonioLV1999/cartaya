@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev.js",
-    "build": "vite build",
+    "build": "vite build && node scripts/precomprimir.js",
     "start": "node server/index.js",
     "seed": "node scripts/seed.js",
     "hash-password": "node scripts/hash-password.js",

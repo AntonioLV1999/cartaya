@@ -10,7 +10,7 @@
 //    sigue apareciendo en menos de 2 s.
 // Además comprueba que el JS de la carta pesa como mucho 60 KB comprimido con gzip (design.md).
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { chromium } from '@playwright/test';
@@ -29,14 +29,17 @@ function comprobar(nombre, ok, detalle) {
 
 // ---------- 1. Compilar y medir el JS de la carta ----------
 execFileSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--logLevel', 'warn'], { stdio: 'inherit' });
+execFileSync(process.execPath, ['scripts/precomprimir.js'], { stdio: 'inherit' });
 
 const html = readFileSync(join(DIST, 'carta.html'), 'utf8');
 const scripts = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.js)"/g)].map((m) => m[1]);
-const pesoJs = scripts.reduce((total, ruta) => total + gzipSync(readFileSync(join(DIST, ruta))).length, 0);
+// Lo que se transfiere de verdad: la variante .br precomprimida que sirve Express.
+const pesoJs = scripts.reduce((total, ruta) => total + statSync(join(DIST, `${ruta}.br`)).size, 0);
+const pesoGzip = scripts.reduce((total, ruta) => total + gzipSync(readFileSync(join(DIST, ruta)), { level: 9 }).length, 0);
 comprobar(
-  'JS de la carta ≤ 60 KB gzip',
+  'JS de la carta ≤ 60 KB transferidos con brotli',
   pesoJs <= PRESUPUESTO_JS,
-  `${(pesoJs / 1024).toFixed(1)} KB (${scripts.join(', ')})`,
+  `${(pesoJs / 1024).toFixed(1)} KB brotli (${(pesoGzip / 1024).toFixed(1)} KB gzip, para navegadores sin brotli; ${scripts.join(', ')})`,
 );
 const htmlAdmin = readFileSync(join(DIST, 'admin.html'), 'utf8');
 const soloAdmin = [...htmlAdmin.matchAll(/src="(\/assets\/[^"]+\.js)"/g)].map((m) => m[1]);

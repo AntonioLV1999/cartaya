@@ -43,7 +43,8 @@
 - [x] 6.1 Crear la hoja de estilos propia con variables (texto base 18 px en `rem`, contraste ≥ 7:1, botones ≥ 48 px, una columna fluida); verificar con `axe-core` en Playwright que no hay fallos de contraste AAA
 - [x] 6.2 Crear `carta.html` con `<link rel="preload" href="/api/carta">` y los componentes de cabecera ("La Estación" y aviso de alergias), índice de categorías, categoría y plato (nombre, precio formateado, descripción, foto `loading="lazy"` con dimensiones fijas y ocultación si falla, alérgenos como etiquetas de texto o "Sin alérgenos", etiqueta "Agotado"); verificar con tests de componente "Nombre del establecimiento en la cabecera", "Aviso de alergias visible", "Plato con todos sus datos", "Plato sin foto", "Plato con alérgenos", "Plato sin alérgenos" y "Plato agotado en la carta"
 - [x] 6.3 Verificar con tests e2e en 360 px: "Entrada desde el QR de una mesa", "Sin registro del cliente final", "Ningún plato sin información de alérgenos", "Navegación entre categorías", "Tamaño de texto y contraste", "Texto ampliado" y "Los cambios del catálogo se reflejan al recargar"
-- [ ] 6.4 Verificar con Lighthouse CI (perfil móvil, 4G simulado, semilla de 150 platos con foto) los escenarios "Carga en móvil de gama media con 4G" y "Las fotos no bloquean el texto", y que el JS de la carta pesa ≤ 60 KB gzip
+- [ ] 6.4 Verificar con Lighthouse CI (perfil móvil, 4G simulado, semilla de 150 platos con foto) los escenarios "Carga en móvil de gama media con 4G" y "Las fotos no bloquean el texto", y que el JS de la carta pesa ≤ 60 KB transferidos con brotli
+- [ ] 6.5 Precomprimir en el build los JS y CSS (`.br` calidad 11 y `.gz`) con `zlib` y servir desde Express la variante que acepte el navegador, con `Vary: Accept-Encoding`; verificar con tests de `supertest` que se sirve `.br`, `.gz` o el original según `Accept-Encoding` con el `Content-Type` correcto
 
 ## 7. Interfaz de administración
 

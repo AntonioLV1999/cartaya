@@ -9,6 +9,7 @@ import { obtenerCarta } from './carta.js';
 import { crearAlmacenFotos, MENSAJE_TAMANO } from './fotos.js';
 import { crearRutasAdmin } from './admin.js';
 import { ErrorValidacion } from './errores.js';
+import { estaticosPrecomprimidos } from './estaticos.js';
 
 const DIST = fileURLToPath(new URL('../web/dist', import.meta.url));
 
@@ -66,6 +67,7 @@ export function crearApp({
   };
   app.get(['/', '/carta', '/mesa/:id'], pagina('carta.html'));
   app.get('/admin', pagina('admin.html'));
+  app.use('/assets', estaticosPrecomprimidos(distDir));
   app.use(express.static(distDir, { index: false, immutable: true, maxAge: '365d' }));
 
   // ---------- Errores ----------
