@@ -5,7 +5,7 @@
 - [x] 1.1 Crear `package.json` en la raíz con las dependencias de design.md (resumen de dependencias) y los scripts `dev`, `build`, `start`, `test`, `test:e2e`, `test:perf` y `hash-password`; verificar que `npm install` termina sin errores con Node.js 22
 - [x] 1.2 Crear la estructura `server/` y `web/` con Vite configurado con dos *entries* (`web/carta.html`, `web/admin.html`) y proxy `/api` hacia Express; verificar que `npm run dev` sirve ambas páginas vacías
 - [x] 1.3 Crear el servidor Express (`server/app.js` exportable para tests, `server/index.js` que escucha) con `compression`, estáticos de `web/dist` y rutas `/`, `/carta`, `/mesa/:id` → carta y `/admin` → administración; verificar con un test de humo de `supertest` que las cuatro rutas responden 200
-- [ ] 1.4 Configurar `node:test`, Vitest, Playwright y Lighthouse CI para que `npm test`, `npm run test:e2e` y `npm run test:perf` se ejecuten (aunque haya pocos tests); verificar que los tres comandos terminan en verde
+- [x] 1.4 Configurar `node:test`, Vitest, Playwright y Lighthouse CI para que `npm test`, `npm run test:e2e` y `npm run test:perf` se ejecuten (aunque haya pocos tests); verificar que los tres comandos terminan en verde
 
 ## 2. Base de datos y alérgenos
 
@@ -43,7 +43,7 @@
 - [x] 6.1 Crear la hoja de estilos propia con variables (texto base 18 px en `rem`, contraste ≥ 7:1, botones ≥ 48 px, una columna fluida); verificar con `axe-core` en Playwright que no hay fallos de contraste AAA
 - [x] 6.2 Crear `carta.html` con `<link rel="preload" href="/api/carta">` y los componentes de cabecera ("La Estación" y aviso de alergias), índice de categorías, categoría y plato (nombre, precio formateado, descripción, foto `loading="lazy"` con dimensiones fijas y ocultación si falla, alérgenos como etiquetas de texto o "Sin alérgenos", etiqueta "Agotado"); verificar con tests de componente "Nombre del establecimiento en la cabecera", "Aviso de alergias visible", "Plato con todos sus datos", "Plato sin foto", "Plato con alérgenos", "Plato sin alérgenos" y "Plato agotado en la carta"
 - [x] 6.3 Verificar con tests e2e en 360 px: "Entrada desde el QR de una mesa", "Sin registro del cliente final", "Ningún plato sin información de alérgenos", "Navegación entre categorías", "Tamaño de texto y contraste", "Texto ampliado" y "Los cambios del catálogo se reflejan al recargar"
-- [ ] 6.4 Verificar con Lighthouse CI (perfil móvil, 4G simulado, semilla de 150 platos con foto) los escenarios "Carga en móvil de gama media con 4G" y "Las fotos no bloquean el texto", y que el JS de la carta pesa ≤ 60 KB transferidos con brotli
+- [x] 6.4 Verificar con Lighthouse CI (perfil móvil, 4G simulado, semilla de 150 platos con foto) los escenarios "Carga en móvil de gama media con 4G" y "Las fotos no bloquean el texto", y que el JS de la carta pesa ≤ 60 KB transferidos con brotli
 - [x] 6.5 Precomprimir en el build los JS y CSS (`.br` calidad 11 y `.gz`) con `zlib` y servir desde Express la variante que acepte el navegador, con `Vary: Accept-Encoding`; verificar con tests de `supertest` que se sirve `.br`, `.gz` o el original según `Accept-Encoding` con el `Content-Type` correcto
 
 ## 7. Interfaz de administración
@@ -57,7 +57,7 @@
 
 ## 8. Verificación integrada
 
-- [ ] 8.1 Ejecutar `npm test`, `npm run test:e2e` y `npm run test:perf` y verificar que todos pasan y que cada escenario de las tres specs tiene un test con su mismo nombre (comprobación por script que cruza los nombres de `#### Scenario:` con los nombres de test)
+- [x] 8.1 Ejecutar `npm test`, `npm run test:e2e` y `npm run test:perf` y verificar que todos pasan y que cada escenario de las tres specs tiene un test con su mismo nombre (comprobación por script que cruza los nombres de `#### Scenario:` con los nombres de test)
 - [x] 8.2 Comprobar a mano en un móvil real con 4G que la carta carga en menos de 2 s y que la administración se usa con comodidad; anotar el resultado en el PR
 - [x] 8.3 Documentar en `README.md` el arranque, la semilla y la copia de seguridad de `data/` (BD + fotos); verificar que el README permite levantar el proyecto desde cero
 
