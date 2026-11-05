@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
   estado          TEXT    NOT NULL DEFAULT 'recibido',
   total_centimos  INTEGER NOT NULL CHECK (total_centimos > 0),
   creado_en       INTEGER NOT NULL,
+  cancelado_en    INTEGER,                         -- versión 3 (db.js la añade a las bases ya creadas)
   UNIQUE (dia, numero)
 );
 
@@ -98,4 +99,4 @@ BEGIN
   SELECT RAISE(ABORT, 'Las categorías no se borran: se archivan');
 END;
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;

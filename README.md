@@ -4,6 +4,7 @@ Carta digital de **La Estación**. El cliente la consulta desde el QR de su mesa
 
 - Carta pública: `/` y `/carta` (solo consulta) y `/mesa/<código>` (carta de una mesa, desde la que se pide). El código de cada mesa es aleatorio y va en su QR.
 - Administración del catálogo y de las mesas (con sus QR para imprimir): `/admin`, protegida con la contraseña de establecimiento.
+- Panel de cocina, con los pedidos del día en tiempo real: `/cocina`, pensado para una tablet y protegido con la misma contraseña.
 
 Los requisitos están en `openspec/` (specs y cambios de OpenSpec), que es la fuente de verdad del comportamiento.
 
@@ -47,7 +48,7 @@ npm run seed
 npm run dev
 ```
 
-Arranca Express en el puerto 3000 (API y fotos) y Vite en http://localhost:5173 (frontend con recarga en caliente y proxy de `/api` hacia Express). Abra http://localhost:5173/carta y http://localhost:5173/admin.
+Arranca Express en el puerto 3000 (API y fotos) y Vite en http://localhost:5173 (frontend con recarga en caliente y proxy de `/api` hacia Express). Abra http://localhost:5173/carta, http://localhost:5173/admin y http://localhost:5173/cocina.
 
 ### Producción
 
@@ -56,7 +57,15 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-El servidor escucha en el puerto 3000 (variable `PORT`) y sirve la carta, la administración, la API y las fotos. El esquema de la base de datos se crea solo al arrancar. Con `NODE_ENV=production` la cookie de sesión lleva `Secure`, así que debe servirse por HTTPS.
+El servidor escucha en el puerto 3000 (variable `PORT`) y sirve la carta, la administración, el panel de cocina, la API y las fotos. El esquema de la base de datos se crea o se actualiza solo al arrancar; antes de actualizar una instalación en marcha, haga una copia de seguridad. Con `NODE_ENV=production` la cookie de sesión lleva `Secure`, así que debe servirse por HTTPS.
+
+### Preparar la tablet de cocina
+
+1. Abra `/cocina` en el navegador de la tablet e introduzca la contraseña de establecimiento.
+2. Pulse **Activar sonido**. Los navegadores no dejan sonar una página hasta la primera pulsación, así que el botón sigue visible mientras el sonido esté bloqueado; tras recargar la página hay que volver a pulsarlo. Sin sonido, los pedidos nuevos se siguen resaltando.
+3. Configure la tablet para que **la pantalla no se apague nunca** mientras esté enchufada: un panel dormido no avisa.
+
+El panel muestra los pedidos del día según la hora de Madrid. Un pedido sin servir a medianoche deja de verse en el panel, aunque sigue en la base de datos.
 
 ## Configuración
 
@@ -81,7 +90,7 @@ La sesión dura 30 días sin uso en el mismo navegador y se renueva con cada uso
 
 **Todo lo que importa está en la carpeta de datos** (`CARTAYA_DATA_DIR`, por defecto `./data`):
 
-- `cartaya.db` (y, mientras el servidor está en marcha, `cartaya.db-wal` y `cartaya.db-shm`): el catálogo y las sesiones.
+- `cartaya.db` (y, mientras el servidor está en marcha, `cartaya.db-wal` y `cartaya.db-shm`): el catálogo, las mesas, los pedidos y las sesiones.
 - `fotos/`: las fotos de los platos. No están dentro de la base de datos, así que hay que copiarlas también.
 
 La forma más sencilla y segura:
@@ -98,7 +107,7 @@ Si no puede detener el servidor, copie primero la base de datos con SQLite (`sql
 
 ```bash
 npm test            # API y BD (node:test + supertest), componentes (Vitest) y cruce escenarios ↔ tests
-npm run test:e2e    # extremo a extremo en un móvil de 360 px (Playwright + axe-core)
+npm run test:e2e    # extremo a extremo en un móvil de 360 px y una tablet de 768 px (Playwright + axe-core)
 npm run test:perf   # tiempo de carga con Lighthouse CI (móvil de gama media, 4G, 150 platos con foto)
 ```
 
@@ -121,7 +130,7 @@ Las de desarrollo (supertest, Vitest, Testing Library, Playwright, axe-core, Lig
 
 ```
 server/   Express, API, acceso a SQLite (schema.sql), sesión, fotos; alergenos.js y precio.js se comparten con web/
-web/      React + Vite: carta.html (carta pública) y admin.html (administración), dos entradas separadas
+web/      React + Vite: carta.html (carta pública), admin.html (administración) y cocina.html (panel de cocina), tres entradas separadas
 scripts/  hash-password, seed, servidor de pruebas, test de rendimiento y cruce de escenarios
 openspec/ Specs y cambios (fuente de verdad del comportamiento)
 ```

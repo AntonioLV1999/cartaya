@@ -36,7 +36,7 @@ Los visitantes de La Estación ya piden desde su mesa, pero el pedido se queda r
 
 ## Decisiones de negocio
 
-Origen: **Andrés** = requisito expresado por el cliente; **Equipo** = decisión tomada por el equipo para desbloquear el cambio, pendiente de validar con Andrés antes de archivar.
+Origen: **Andrés** = requisito expresado por el cliente; **Equipo** = decisión tomada por el equipo para desbloquear el cambio. Andrés validó todas las decisiones de origen Equipo el 2026-11-05.
 
 | Fecha | Origen | Decisión |
 |-------|--------|----------|
@@ -55,7 +55,7 @@ Origen: **Andrés** = requisito expresado por el cliente; **Equipo** = decisión
 | 2026-11-04 | Equipo | **Solo se guarda el momento de la cancelación**: no se guardan las horas de inicio y de servicio, que únicamente servirían para las métricas que quedan fuera de alcance. |
 | 2026-11-04 | Equipo | **Aviso simple**: un tono breve generado por el navegador, sin ajustes, más el resaltado del pedido. Como los navegadores no permiten sonar sin una primera pulsación, el panel ofrece "Activar sonido" mientras el sonido esté bloqueado. |
 | 2026-11-04 | Equipo | **Conexión perdida**: el panel muestra un aviso visible mientras no recibe datos, porque en cocina un panel desconectado parece un panel sin pedidos. |
-| 2026-11-04 | Equipo | **Alérgenos fuera del panel**: el encargo no los incluye y el visitante ya los ve antes de confirmar; lo que cocina debe tener en cuenta llega en la nota del plato. El diseño anterior guardó `plato_id` para poder enlazarlos más adelante. **A validar expresamente con Andrés**, por ser un asunto de seguridad alimentaria. |
+| 2026-11-04 | Equipo | **Alérgenos fuera del panel**: el encargo no los incluye y el visitante ya los ve antes de confirmar; lo que cocina debe tener en cuenta llega en la nota del plato. El diseño anterior guardó `plato_id` para poder enlazarlos más adelante. Por ser un asunto de seguridad alimentaria, requería validación expresa de Andrés, que la dio el 2026-11-05. |
 
 ## Impacto
 

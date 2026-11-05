@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const web = (f) => fileURLToPath(new URL(`./web/${f}`, import.meta.url));
 
 // En desarrollo, mismas URL que en producción: /, /carta, /mesa/:codigo y /mesa/:codigo/pedidos/:token → carta;
-// /admin → administración.
+// /admin → administración; /cocina → panel de cocina.
 const rutasDePagina = {
   name: 'cartaya-rutas',
   configureServer(server) {
@@ -12,6 +12,7 @@ const rutasDePagina = {
       const ruta = req.url.split('?')[0];
       if (ruta === '/' || ruta === '/carta' || /^\/mesa\/[^/]+(\/pedidos\/[^/]+)?\/?$/.test(ruta)) req.url = '/carta.html';
       else if (ruta === '/admin') req.url = '/admin.html';
+      else if (ruta === '/cocina') req.url = '/cocina.html';
       next();
     });
   },
@@ -25,7 +26,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: { carta: web('carta.html'), admin: web('admin.html') },
+      input: { carta: web('carta.html'), admin: web('admin.html'), cocina: web('cocina.html') },
     },
   },
   server: {

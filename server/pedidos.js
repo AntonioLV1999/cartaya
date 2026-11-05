@@ -6,7 +6,9 @@ import {
   MAX_LINEAS,
   MAX_NOTA,
   MENSAJE_CARTA_CAMBIADA,
+  MENSAJE_ESTADO_CAMBIADO,
   MENSAJE_MESA_ARCHIVADA,
+  MENSAJE_NO_CANCELABLE,
   MENSAJE_SOLO_CONSULTA,
   textoEstado,
 } from './textos.js';
@@ -14,6 +16,12 @@ import {
 import { diaDeServicio } from './dia.js';
 
 export { diaDeServicio };
+
+// Únicas transiciones válidas, por estado guardado. «servido» y «cancelado» son finales.
+const TRANSICIONES = {
+  recibido: ['en_preparacion', 'cancelado'],
+  en_preparacion: ['servido'],
+};
 
 /** Comprueba la forma y los límites del pedido. Devuelve las líneas normalizadas. */
 function validarLineas(lineas) {
@@ -61,7 +69,9 @@ export function crearPedidos(db, { eventos, ahora = () => Date.now() }) {
       VALUES (?, ?, ?, ?, ?, ?, ?)`),
     pedido: db.prepare('SELECT * FROM pedidos WHERE token = ?'),
     lineas: db.prepare('SELECT * FROM pedido_lineas WHERE pedido_id = ? ORDER BY posicion'),
-    cambiarEstado: db.prepare('UPDATE pedidos SET estado = ? WHERE token = ?'),
+    delDia: db.prepare('SELECT * FROM pedidos WHERE dia = ? ORDER BY creado_en, numero'),
+    // Condicionada al estado leído: una petición que llega tarde no pisa a la anterior.
+    cambiarEstado: db.prepare('UPDATE pedidos SET estado = @nuevo, cancelado_en = @canceladoEn WHERE token = @token AND estado = @actual'),
   };
 
   function aPedido(fila) {
@@ -73,6 +83,7 @@ export function crearPedidos(db, { eventos, ahora = () => Date.now() }) {
       estado: fila.estado,
       estadoTexto: textoEstado(fila.estado),
       creadoEn: new Date(fila.creado_en).toISOString(),
+      canceladoEn: fila.cancelado_en === null ? null : new Date(fila.cancelado_en).toISOString(),
       totalCentimos: fila.total_centimos,
       lineas: q.lineas.all(fila.id).map((l) => ({
         platoId: l.plato_id,
@@ -138,15 +149,23 @@ export function crearPedidos(db, { eventos, ahora = () => Date.now() }) {
     return aPedido(fila);
   }
 
-  /** Uso interno (y del futuro panel de cocina): cambia el estado y avisa a quien lo esté viendo. */
-  function cambiarEstado(token, estado) {
-    if (typeof estado !== 'string' || !/^[a-z-]+$/.test(estado)) throw new ErrorValidacion('estado', 'El estado no es válido.');
-    obtener(token);
-    q.cambiarEstado.run(estado, token);
+  /** Pedidos de un día de servicio, del más antiguo al más reciente. */
+  function delDia(dia) {
+    return q.delDia.all(dia).map(aPedido);
+  }
+
+  /** Lleva un pedido al estado indicado y avisa a quien lo esté viendo. 404 si no existe; 409 si no procede. */
+  function cambiarEstado(token, nuevo) {
+    const { estado: actual } = obtener(token);
+    const permitido = TRANSICIONES[actual]?.includes(nuevo);
+    const canceladoEn = nuevo === 'cancelado' ? ahora() : null;
+    if (!permitido || q.cambiarEstado.run({ token, actual, nuevo, canceladoEn }).changes === 0) {
+      throw new ErrorValidacion('estado', nuevo === 'cancelado' ? MENSAJE_NO_CANCELABLE : MENSAJE_ESTADO_CAMBIADO, 409);
+    }
     const pedido = obtener(token);
     eventos.emit('estado-cambiado', pedido);
     return pedido;
   }
 
-  return { confirmar, obtener, cambiarEstado };
+  return { confirmar, obtener, delDia, cambiarEstado };
 }

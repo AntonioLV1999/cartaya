@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from './api.js';
 
-export function Login({ onEntrar }) {
+export function Login({ onEntrar, titulo = 'La Estación · Administración' }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
@@ -24,7 +24,7 @@ export function Login({ onEntrar }) {
   return (
     <main className="contenedor">
       <div className="admin-barra">
-        <h1>La Estación · Administración</h1>
+        <h1>{titulo}</h1>
       </div>
       <form className="formulario seccion" onSubmit={entrar} noValidate>
         <h2>Iniciar sesión</h2>

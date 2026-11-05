@@ -237,6 +237,47 @@ a { color: var(--acento); }
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
+/* ---------- Panel de cocina (tablet: una columna en vertical, dos en horizontal) ---------- */
+
+.panel-cocina { width: 100%; max-width: 75rem; margin: 0 auto; padding: 0 var(--hueco) 2rem; }
+
+.aviso-conexion {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radio);
+  background: var(--peligro);
+  color: var(--peligro-texto);
+  font-size: var(--t-grande);
+  font-weight: 700;
+}
+
+.pedidos-cocina { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hueco); margin: 0; padding: 0; list-style: none; }
+@media (orientation: landscape) and (min-width: 56rem) {
+  .pedidos-cocina { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.tarjeta-pedido {
+  display: grid;
+  gap: 0.5rem;
+  height: 100%;
+  align-content: start;
+  padding: 1rem;
+  border: 0.125rem solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--superficie);
+}
+.tarjeta-pedido--nuevo { border-color: var(--acento); outline: 0.25rem solid var(--acento); background: var(--aviso-fondo); }
+.tarjeta-pedido__cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; }
+.tarjeta-pedido__cabecera h2 { margin-right: auto; font-size: var(--t-titulo); line-height: 1.2; }
+.tarjeta-pedido__mesa, .tarjeta-pedido__tiempo { font-size: var(--t-grande); font-weight: 700; }
+.tarjeta-pedido__lineas { display: grid; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
+.tarjeta-pedido__plato { font-weight: 700; }
+.tarjeta-pedido__confirmar { display: grid; gap: 0.5rem; font-weight: 700; }
+.etiqueta--nuevo { border-color: var(--acento); background: var(--acento); color: var(--acento-texto); font-weight: 700; }
+
 /* ---------- Mesas y hojas de QR ---------- */
 
 .mesa-qr { margin: 0; display: grid; gap: 0.5rem; justify-items: start; }

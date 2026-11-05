@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { crearEntorno, agenteConSesion, ayudante } from './test/entorno.js';
 import { diaDeServicio } from './pedidos.js';
-import { MENSAJE_MESA_ARCHIVADA, MENSAJE_SOLO_CONSULTA } from './textos.js';
+import {
+  MENSAJE_ESTADO_CAMBIADO,
+  MENSAJE_MESA_ARCHIVADA,
+  MENSAJE_NO_CANCELABLE,
+  MENSAJE_SOLO_CONSULTA,
+  textoEstado,
+} from './textos.js';
 
 let e;
 let agente;
@@ -246,7 +252,7 @@ test('El pedido no guarda datos del visitante', async () => {
     .set('Cookie', 'rastreo=abc123')
     .send({ lineas: [linea(cafe, 1, 'sin azúcar')] });
   const columnas = (t) => e.db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
-  assert.deepEqual(columnas('pedidos'), ['id', 'mesa_id', 'mesa_nombre', 'dia', 'numero', 'token', 'estado', 'total_centimos', 'creado_en']);
+  assert.deepEqual(columnas('pedidos'), ['id', 'mesa_id', 'mesa_nombre', 'dia', 'numero', 'token', 'estado', 'total_centimos', 'creado_en', 'cancelado_en']);
   assert.deepEqual(columnas('pedido_lineas'), ['pedido_id', 'posicion', 'plato_id', 'nombre', 'precio_centimos', 'cantidad', 'nota']);
   const volcado = JSON.stringify([
     e.db.prepare('SELECT * FROM pedidos').all(),
@@ -255,6 +261,121 @@ test('El pedido no guarda datos del visitante', async () => {
   for (const rastro of ['127.0.0.1', '::1', '203.0.113.7', 'NavegadorDePrueba', 'abc123']) {
     assert.ok(!volcado.includes(rastro), rastro);
   }
+});
+
+// ---------- Transiciones de estado ----------
+
+const servicio = () => e.app.locals.pedidos;
+const estadoDe = (p) => servicio().obtener(p.token).estado;
+/** Comprueba que el cambio se rechaza con 409, con ese mensaje si se indica. */
+const rechazado = (p, nuevo, mensaje) =>
+  assert.throws(() => servicio().cambiarEstado(p.token, nuevo), (err) => {
+    assert.equal(err.status, 409);
+    if (mensaje) assert.equal(err.mensaje, mensaje);
+    return true;
+  });
+/** Confirma un pedido y lo lleva por los estados indicados. */
+async function pedidoEn(...estados) {
+  const p = (await confirmar([linea(cafe)])).body;
+  for (const estado of estados) servicio().cambiarEstado(p.token, estado);
+  return p;
+}
+
+test('Etiquetas de los estados del pedido', async () => {
+  assert.equal(textoEstado('en_preparacion'), 'En preparación');
+  const p = await pedidoEn('en_preparacion');
+  assert.equal((await request(e.app).get(`/api/pedidos/${p.token}`)).body.estadoTexto, 'En preparación');
+  assert.equal(textoEstado('recibido'), 'Recibido');
+  assert.equal(textoEstado('servido'), 'Servido');
+  assert.equal(textoEstado('cancelado'), 'Cancelado');
+});
+
+test('Avance de estado permitido: Recibido, En preparación y Servido', async () => {
+  const avisos = [];
+  e.app.locals.eventos.on('estado-cambiado', (p) => avisos.push(p.estado));
+  const p = await pedidoEn();
+  assert.equal(servicio().cambiarEstado(p.token, 'en_preparacion').estadoTexto, 'En preparación');
+  assert.equal(servicio().cambiarEstado(p.token, 'servido').estadoTexto, 'Servido');
+  assert.deepEqual(avisos, ['en_preparacion', 'servido']);
+});
+
+test('Salto de estado rechazado', async () => {
+  const p = await pedidoEn();
+  rechazado(p, 'servido', MENSAJE_ESTADO_CAMBIADO);
+  assert.equal(estadoDe(p), 'recibido');
+});
+
+test('Retroceso de estado rechazado', async () => {
+  const preparando = await pedidoEn('en_preparacion');
+  const servido = await pedidoEn('en_preparacion', 'servido');
+  rechazado(preparando, 'recibido');
+  rechazado(servido, 'en_preparacion');
+  assert.equal(estadoDe(preparando), 'en_preparacion');
+  assert.equal(estadoDe(servido), 'servido');
+});
+
+test('Estado no válido rechazado', async () => {
+  const p = await pedidoEn();
+  for (const nuevo of ['listo', '', '__proto__', 'constructor', null, undefined, 7, ['en_preparacion']]) rechazado(p, nuevo);
+  assert.equal(estadoDe(p), 'recibido');
+});
+
+test('Dos pulsaciones no saltan un estado', async () => {
+  const avisos = [];
+  e.app.locals.eventos.on('estado-cambiado', (p) => avisos.push(p.estado));
+  const p = await pedidoEn();
+  servicio().cambiarEstado(p.token, 'en_preparacion');
+  rechazado(p, 'en_preparacion', MENSAJE_ESTADO_CAMBIADO);
+  assert.equal(estadoDe(p), 'en_preparacion');
+  assert.deepEqual(avisos, ['en_preparacion'], 'la petición rechazada no avisa a nadie');
+});
+
+test('Cancelación rechazada fuera de Recibido', async () => {
+  const preparando = await pedidoEn('en_preparacion');
+  const servido = await pedidoEn('en_preparacion', 'servido');
+  rechazado(preparando, 'cancelado', MENSAJE_NO_CANCELABLE);
+  rechazado(servido, 'cancelado', MENSAJE_NO_CANCELABLE);
+  assert.equal(estadoDe(preparando), 'en_preparacion');
+  assert.equal(estadoDe(servido), 'servido');
+  assert.equal(servicio().obtener(preparando.token).canceladoEn, null);
+});
+
+test('Un pedido cancelado no vuelve a cambiar', async () => {
+  const p = await pedidoEn('cancelado');
+  const { canceladoEn } = servicio().obtener(p.token);
+  assert.equal(canceladoEn, new Date(e.reloj.t).toISOString());
+  e.reloj.t += 60_000;
+  rechazado(p, 'en_preparacion');
+  rechazado(p, 'cancelado', MENSAJE_NO_CANCELABLE);
+  assert.equal(estadoDe(p), 'cancelado');
+  assert.equal(servicio().obtener(p.token).canceladoEn, canceladoEn);
+});
+
+test('La cancelación no borra el pedido', async () => {
+  for (let i = 0; i < 14; i++) await confirmar([linea(tostada)]);
+  const p15 = (await confirmar([linea(cafe, 2)])).body;
+  assert.equal(p15.numero, 15);
+  servicio().cambiarEstado(p15.token, 'cancelado');
+  const despues = servicio().obtener(p15.token);
+  assert.equal(despues.estadoTexto, 'Cancelado');
+  assert.equal(despues.numero, 15);
+  assert.equal(despues.totalCentimos, 300);
+  assert.deepEqual(despues.lineas, p15.lineas);
+  assert.equal((await confirmar([linea(cafe)])).body.numero, 16);
+});
+
+test('Pedidos del día: por antigüedad y sin los de otro día', async () => {
+  e.reloj.t = Date.parse('2026-11-03T12:00:00Z');
+  await confirmar([linea(cafe)]);
+  e.reloj.t = Date.parse('2026-11-04T12:00:00Z');
+  const primero = (await confirmar([linea(cafe)])).body;
+  const segundo = (await confirmar([linea(tostada)])).body; // en el mismo milisegundo: decide el número
+  e.reloj.t += 1000;
+  const tercero = (await confirmar([linea(cafe)])).body;
+  const delDia = servicio().delDia('2026-11-04');
+  assert.deepEqual(delDia.map((p) => p.token), [primero.token, segundo.token, tercero.token]);
+  assert.deepEqual(delDia[1], segundo);
+  assert.deepEqual(servicio().delDia('2026-11-02'), []);
 });
 
 // ---------- Tiempo real ----------
@@ -295,9 +416,9 @@ test('Estado del pedido por SSE: estado inicial, cambios y liberación al cerrar
   assert.equal(sse.respuesta.headers.get('content-encoding'), null, 'sin compresión');
   assert.deepEqual(await sse.siguiente(), { estado: 'recibido', estadoTexto: 'Recibido' });
   assert.equal(e.app.locals.eventos.listenerCount('estado-cambiado'), 1);
-  e.app.locals.pedidos.cambiarEstado(otro.token, 'listo'); // de otro pedido: no llega
-  e.app.locals.pedidos.cambiarEstado(p.token, 'listo');
-  assert.deepEqual(await sse.siguiente(), { estado: 'listo', estadoTexto: 'Listo' });
+  e.app.locals.pedidos.cambiarEstado(otro.token, 'en_preparacion'); // de otro pedido: no llega
+  e.app.locals.pedidos.cambiarEstado(p.token, 'en_preparacion');
+  assert.deepEqual(await sse.siguiente(), { estado: 'en_preparacion', estadoTexto: 'En preparación' });
   await sse.cerrar();
   await new Promise((ok) => setTimeout(ok, 50));
   assert.equal(e.app.locals.eventos.listenerCount('estado-cambiado'), 0);

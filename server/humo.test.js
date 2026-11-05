@@ -6,7 +6,7 @@ import { crearEntorno } from './test/entorno.js';
 const e = crearEntorno();
 after(() => e.cerrar());
 
-for (const ruta of ['/', '/carta', '/mesa/7', '/admin']) {
+for (const ruta of ['/', '/carta', '/mesa/7', '/admin', '/cocina']) {
   test(`Humo: ${ruta} responde 200 con HTML`, async () => {
     const r = await request(e.app).get(ruta);
     assert.equal(r.status, 200);

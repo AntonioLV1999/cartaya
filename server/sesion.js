@@ -66,6 +66,11 @@ export function crearSesion({ db, passwordHash, produccion, ahora }) {
     return huella;
   }
 
+  /** La cookie caduca en el navegador contando desde que se envió: cada uso la vuelve a enviar. */
+  function renovarCookie(req, res) {
+    res.cookie(COOKIE, leerCookie(req, COOKIE), opcionesCookie());
+  }
+
   /** Si la IP está bloqueada, devuelve el instante (ms) en que puede volver a intentarlo. */
   function bloqueadaHasta(ip) {
     const t = ahora();
@@ -78,7 +83,9 @@ export function crearSesion({ db, passwordHash, produccion, ahora }) {
   const router = express.Router();
 
   router.get('/', (req, res) => {
-    res.json({ abierta: Boolean(sesionValida(req)) });
+    const abierta = Boolean(sesionValida(req));
+    if (abierta) renovarCookie(req, res);
+    res.json({ abierta });
   });
 
   router.post('/', express.json({ limit: '10kb' }), (req, res) => {
@@ -113,13 +120,14 @@ export function crearSesion({ db, passwordHash, produccion, ahora }) {
     res.json({ abierta: false });
   });
 
-  /** Middleware para /api/admin: 401 si no hay sesión de establecimiento. */
+  /** Middleware para /api/admin y /api/cocina: 401 si no hay sesión de establecimiento. */
   function exigirSesion(req, res, next) {
     if (!sesionValida(req)) {
       return res.status(401).json({ campo: null, mensaje: 'Inicie sesión para gestionar la carta.' });
     }
+    renovarCookie(req, res);
     next();
   }
 
-  return { router, exigirSesion };
+  return { router, exigirSesion, sesionValida };
 }

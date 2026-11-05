@@ -25,11 +25,6 @@ export function arrancarServidorPrueba({ puerto = 4321, rendimiento = false, ret
     // Simula fotos que tardan en servirse (escenario «Las fotos no bloquean el texto»).
     raiz.use('/fotos', (req, res, next) => setTimeout(next, retrasoFotos));
   }
-  // Solo en el servidor de pruebas: cambiar el estado de un pedido como lo hará el panel de cocina
-  // (escenario «El estado se actualiza sin recargar»).
-  raiz.post('/prueba/pedidos/:token/estado', express.json(), (req, res) => {
-    res.json(app.locals.pedidos.cambiarEstado(req.params.token, req.body.estado));
-  });
   raiz.use(app);
   return new Promise((resolver) => {
     const servidor = raiz.listen(puerto, () => {

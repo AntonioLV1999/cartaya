@@ -418,8 +418,8 @@ test('El estado se actualiza sin recargar (en el móvil)', async () => {
   await prepararYConfirmar(() => [201, pedidoConfirmado()], ['Café con leche']);
   await screen.findByText('Pedido 15');
   expect(fuentes.map((f) => f.url)).toEqual(['/api/pedidos/tokenSecretoDePrueba12/eventos']);
-  fuentes[0].emitir({ estado: 'listo', estadoTexto: 'Listo' });
-  await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Estado: Listo'));
+  fuentes[0].emitir({ estado: 'en_preparacion', estadoTexto: 'En preparación' });
+  await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Estado: En preparación'));
   cleanup();
   expect(fuentes[0].cerrada).toBe(true);
 });
@@ -434,10 +434,10 @@ test('Volver a ver un pedido confirmado', async () => {
   expect(enlace.getAttribute('href')).toBe(`/mesa/${CODIGO}/pedidos/tokenSecretoDePrueba12`);
   cleanup();
   // Al abrir el enlace, se ve la confirmación con su estado actual.
-  simularApi({ 'GET /api/pedidos/tokenSecretoDePrueba12': () => [200, pedidoConfirmado({ estado: 'listo', estadoTexto: 'Listo' })] });
+  simularApi({ 'GET /api/pedidos/tokenSecretoDePrueba12': () => [200, pedidoConfirmado({ estado: 'en_preparacion', estadoTexto: 'En preparación' })] });
   render(<AppCarta ruta={`/mesa/${CODIGO}/pedidos/tokenSecretoDePrueba12`} cargar={() => Promise.reject(new Error('no hace falta'))} />);
   await screen.findByText('Pedido 15');
-  expect(screen.getByRole('status').textContent).toBe('Estado: Listo');
+  expect(screen.getByRole('status').textContent).toBe('Estado: En preparación');
 });
 
 test('Mis pedidos de hoy: los de días anteriores no se muestran', async () => {

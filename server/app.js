@@ -12,7 +12,8 @@ import { crearMesas } from './mesas.js';
 import { MENSAJE_SOLO_CONSULTA } from './textos.js';
 import { crearPedidos } from './pedidos.js';
 import { crearEventosPedidos } from './pedidos-eventos.js';
-import { crearRutasPedidos } from './rutas-pedidos.js';
+import { crearRutasPedidos, LATIDO_SSE } from './rutas-pedidos.js';
+import { crearRutasCocina } from './rutas-cocina.js';
 import { ErrorValidacion } from './errores.js';
 import { estaticosPrecomprimidos } from './estaticos.js';
 
@@ -29,6 +30,7 @@ const DIST = fileURLToPath(new URL('../web/dist', import.meta.url));
  * @param {string} [opciones.distDir]      estáticos del frontend compilado
  * @param {string|boolean|number} [opciones.trustProxy]
  * @param {string|null} [opciones.urlPublica]  dirección pública del local para los QR de las mesas
+ * @param {number} [opciones.latidoSSE]    milisegundos entre latidos de los flujos SSE, inyectable para los tests
  */
 export function crearApp({
   db,
@@ -39,6 +41,7 @@ export function crearApp({
   distDir = DIST,
   trustProxy = false,
   urlPublica = null,
+  latidoSSE = LATIDO_SSE,
 }) {
   const app = express();
   app.disable('x-powered-by');
@@ -50,7 +53,7 @@ export function crearApp({
   const mesas = crearMesas(db, { ahora });
   const eventos = crearEventosPedidos();
   const pedidos = crearPedidos(db, { eventos, ahora });
-  // Servicios internos accesibles para los tests y el servidor de pruebas (y, después, el panel de cocina).
+  // Servicios internos accesibles para los tests.
   app.locals.pedidos = pedidos;
   app.locals.eventos = eventos;
   const sesion = crearSesion({ db, passwordHash, produccion, ahora });
@@ -69,9 +72,14 @@ export function crearApp({
     if (!m || m.archivada) return res.status(404).json({ campo: null, mensaje: MENSAJE_SOLO_CONSULTA });
     res.json({ nombre: m.nombre });
   });
-  app.use('/api', crearRutasPedidos({ pedidos, eventos }));
+  app.use('/api', crearRutasPedidos({ pedidos, eventos, latido: latidoSSE }));
   app.use('/api/sesion', sesion.router);
   app.use('/api/admin', sesion.exigirSesion, crearRutasAdmin({ catalogo, fotos, mesas, urlPublica }));
+  app.use(
+    '/api/cocina',
+    sesion.exigirSesion,
+    crearRutasCocina({ pedidos, eventos, sesionValida: sesion.sesionValida, ahora, latido: latidoSSE }),
+  );
   app.use('/api', (req, res) => res.status(404).json({ campo: null, mensaje: 'No se ha encontrado.' }));
 
   // ---------- Fotos (nombre nuevo en cada sustitución: caché inmutable) ----------
@@ -89,6 +97,7 @@ export function crearApp({
   };
   app.get(['/', '/carta', '/mesa/:codigo', '/mesa/:codigo/pedidos/:token'], pagina('carta.html'));
   app.get('/admin', pagina('admin.html'));
+  app.get('/cocina', pagina('cocina.html'));
   app.use('/assets', estaticosPrecomprimidos(distDir));
   app.use(express.static(distDir, { index: false, immutable: true, maxAge: '365d' }));
 

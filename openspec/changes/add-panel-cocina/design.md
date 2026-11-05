@@ -90,11 +90,13 @@ Cada 25 s, en vez de enviar solo un comentario, el flujo:
 
 1. Llama a `sesionValida(req)` (`crearSesion` pasa a exponerla). Si ya no es válida, cierra el flujo.
 2. Compara `diaDeServicio(ahora())` con el último día enviado. Si cambia, envía la foto del día nuevo.
-3. En otro caso, envía `: latido`.
+3. En otro caso, envía `event: latido`. Es un evento y no un comentario, porque `EventSource` no entrega los comentarios y el panel necesita verlo (decisión 6).
 
 Esto resuelve con un solo mecanismo tres requisitos: la sesión cerrada con el panel abierto, el paso de día y que un panel abierto cuente como uso de la sesión. El retraso máximo es de 25 s, irrelevante para ambos casos. Pulsar "Cerrar sesión" en el propio panel cierra el `EventSource` en el acto.
 
 *Alternativa*: temporizador a medianoche más un registro de flujos por sesión. Son más piezas para el mismo resultado.
+
+Renovar `ultimo_uso_en` no basta para ese último requisito: la cookie caduca en el navegador 30 días después de enviarse, y hasta ahora solo se enviaba al iniciar sesión. Por eso `exigirSesion` y `GET /api/sesion` la reenvían en cada uso, y el panel la renueva con cada acción y cada reconexión. El latido no puede hacerlo, porque las cabeceras del flujo ya se han enviado.
 
 Se extrae de `rutas-pedidos.js` una función `abrirSSE(res)` con las cabeceras y el `retry`, compartida por ambos flujos. La ruta acaba en `/eventos`, así que el filtro de compresión de `app.js` ya la cubre.
 
@@ -105,6 +107,7 @@ Entrada nueva de Vite: `web/cocina.html` y `web/src/cocina/` (`main.jsx`, `AppCo
 - Reutiliza `api.js` y `Login.jsx` de `web/src/admin/`. `Login` recibe una prop `titulo`, porque hoy lleva escrito "Administración".
 - `AppCocina` repite el patrón de `AppAdmin`: comprobar `/api/sesion`, y mostrar `Login` o el panel.
 - **Conexión**: `EventSource` reconecta solo ante un corte de red, pero se rinde (`readyState === CLOSED`) ante un 401. En `onerror` el panel muestra el aviso de conexión perdida. Si el estado es `CLOSED`, consulta `/api/sesion`: sin sesión vuelve al login; con sesión, crea otro `EventSource` a los 3 s. Al llegar una foto se quita el aviso.
+- **Corte silencioso**: si la red se cae sin cerrar la conexión (un router colgado), `EventSource` no recibe ningún error. Por eso el panel vigila el silencio: si pasan 60 s (dos latidos y margen) sin foto ni latido, muestra el aviso, cierra el `EventSource` y abre otro, y repite mientras no llegue nada.
 - **Vistas**: dos botones con `aria-pressed` ("Pedidos activos", "Histórico del día"), como las pestañas de la administración.
 - **Cancelar**: la confirmación va en la propia tarjeta (`¿Cancelar el pedido 15?` con "Sí, cancelar" y "No"), sin `window.confirm`, para mantener el tamaño de los botones y poder probarla.
 - **Errores**: un 409 se muestra como aviso con `role="alert"`. El estado real llega por SSE, no hace falta recargar nada.

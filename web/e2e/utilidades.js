@@ -11,8 +11,8 @@ export async function apiConSesion(baseURL) {
   return api;
 }
 
-export async function iniciarSesion(page) {
-  await page.goto('/admin');
+export async function iniciarSesion(page, ruta = '/admin') {
+  await page.goto(ruta);
   await page.getByLabel('Contraseña de establecimiento').fill(PASSWORD_PRUEBA);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
@@ -41,6 +41,25 @@ export async function botonesGrandes(page, selector = 'button, a.boton, input[ty
       .filter((r) => r.ancho < 47.5 || r.alto < 47.5),
   );
   expect(pequenos, 'elementos pulsables de al menos 48 × 48 px').toEqual([]);
+}
+
+/** Texto de al menos 18 px en todos los elementos visibles del selector. */
+export async function textoLegible(page, selector) {
+  const pequenos = await page.$$eval(selector, (els) =>
+    els
+      .filter((e) => e.offsetParent !== null && e.textContent.trim())
+      .map((e) => ({ t: e.textContent.trim().slice(0, 30), px: parseFloat(getComputedStyle(e).fontSize) }))
+      .filter((x) => x.px < 18),
+  );
+  expect(pequenos, 'texto de al menos 18 px').toEqual([]);
+}
+
+/** Todos los botones tienen nombre accesible. */
+export async function botonesConNombre(page) {
+  const sinNombre = await page.$$eval('button', (bs) =>
+    bs.filter((b) => b.offsetParent !== null && !(b.getAttribute('aria-label') || b.textContent.trim())).length,
+  );
+  expect(sinNombre).toBe(0);
 }
 
 /** Sin fallos de contraste WCAG AAA (7:1). */

@@ -16,7 +16,7 @@ test('Esquema: se crea en una BD vacía con sus tablas y versión', () => {
   assert.deepEqual(tablas, [
     'categorias', 'intentos_login', 'mesas', 'pedido_lineas', 'pedidos', 'plato_alergenos', 'platos', 'sesiones',
   ]);
-  assert.equal(db.pragma('user_version', { simple: true }), 2);
+  assert.equal(db.pragma('user_version', { simple: true }), 3);
   const columnas = db.prepare('PRAGMA table_info(platos)').all().map((c) => c.name);
   assert.ok(columnas.includes('agotado'));
   db.close();
@@ -35,7 +35,7 @@ test('Esquema: aplicarlo dos veces sobre el mismo fichero no falla ni pierde dat
   rmSync(dir, { recursive: true, force: true });
 });
 
-test('Esquema: una BD de la versión 1 con datos pasa a la versión 2 sin perderlos', () => {
+test('Esquema: una BD de la versión 1 con datos pasa a la versión actual sin perderlos', () => {
   const dir = mkdtempSync(join(tmpdir(), 'cartaya-esquema-v1-'));
   const ruta = join(dir, 'cartaya.db');
   // Esquema de la versión 1 tal como se desplegó (sin mesas ni pedidos).
@@ -50,10 +50,40 @@ test('Esquema: una BD de la versión 1 con datos pasa a la versión 2 sin perder
     PRAGMA user_version = 1;`);
   v1.close();
   const db = abrirBD(ruta);
-  assert.equal(db.pragma('user_version', { simple: true }), 2);
+  assert.equal(db.pragma('user_version', { simple: true }), 3);
   assert.equal(db.prepare('SELECT nombre, precio_centimos FROM platos').get().nombre, 'Café con leche');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mesas').get().n, 0);
   db.close();
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('Esquema: una BD de la versión 2 con pedidos gana cancelado_en sin perderlos', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cartaya-esquema-v2-'));
+  const ruta = join(dir, 'cartaya.db');
+  // Tablas de pedidos de la versión 2 tal como se desplegaron (sin cancelado_en).
+  const v2 = new Database(ruta);
+  v2.exec(`
+    CREATE TABLE mesas (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, codigo TEXT NOT NULL UNIQUE, archivada_en TEXT);
+    CREATE TABLE pedidos (id INTEGER PRIMARY KEY, mesa_id INTEGER NOT NULL REFERENCES mesas(id), mesa_nombre TEXT NOT NULL,
+      dia TEXT NOT NULL, numero INTEGER NOT NULL CHECK (numero > 0), token TEXT NOT NULL UNIQUE,
+      estado TEXT NOT NULL DEFAULT 'recibido', total_centimos INTEGER NOT NULL CHECK (total_centimos > 0),
+      creado_en INTEGER NOT NULL, UNIQUE (dia, numero));
+    INSERT INTO mesas (id, nombre, codigo) VALUES (1, 'Mesa 7', 'k3f9q2txab');
+    INSERT INTO pedidos (mesa_id, mesa_nombre, dia, numero, token, total_centimos, creado_en)
+      VALUES (1, 'Mesa 7', '2026-11-03', 15, 'tokenDePrueba', 300, 1000);
+    PRAGMA user_version = 2;`);
+  v2.close();
+  const db = abrirBD(ruta);
+  assert.equal(db.pragma('user_version', { simple: true }), 3);
+  const pedido = db.prepare('SELECT * FROM pedidos').get();
+  assert.equal(pedido.numero, 15);
+  assert.equal(pedido.estado, 'recibido');
+  assert.equal(pedido.cancelado_en, null);
+  db.close();
+  // Abrirla otra vez no vuelve a añadir la columna.
+  const otraVez = abrirBD(ruta);
+  assert.equal(otraVez.prepare('SELECT COUNT(*) AS n FROM pedidos').get().n, 1);
+  otraVez.close();
   rmSync(dir, { recursive: true, force: true });
 });
 

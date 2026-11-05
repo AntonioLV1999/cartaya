@@ -2,6 +2,17 @@ import express from 'express';
 
 export const LATIDO_SSE = 25_000;
 
+/** Abre una respuesta de Server-Sent Events; el navegador reconecta a los 3 s si se corta. */
+export function abrirSSE(res) {
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+  res.write('retry: 3000\n\n');
+}
+
 /**
  * Rutas públicas de pedidos (sin sesión ni datos personales):
  *  POST /api/mesas/:codigo/pedidos      confirmar un pedido
@@ -32,16 +43,10 @@ export function crearRutasPedidos({ pedidos, eventos, latido = LATIDO_SSE }) {
   r.get('/pedidos/:token/eventos', (req, res) => {
     const { token } = req.params;
     const inicial = pedidos.obtener(token); // 404 si no existe
-    res.status(200);
-    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
+    abrirSSE(res);
 
     const enviar = (p) => res.write(`event: estado\ndata: ${JSON.stringify({ estado: p.estado, estadoTexto: p.estadoTexto })}\n\n`);
     // El estado actual nada más conectar: tras una reconexión, el móvil se corrige solo.
-    res.write(`retry: 3000\n\n`);
     enviar(inicial);
 
     const alCambiar = (p) => {

@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { apiConSesion, sinDesplazamientoHorizontal, botonesGrandes, contrasteAAA } from './utilidades.js';
+import {
+  apiConSesion,
+  sinDesplazamientoHorizontal,
+  botonesGrandes,
+  botonesConNombre,
+  textoLegible,
+  contrasteAAA,
+} from './utilidades.js';
 
 const PULSABLES = 'button, a.boton, textarea';
 
@@ -20,25 +27,6 @@ async function prepararPedido(page, mesa) {
   await expect(page.getByRole('region', { name: 'Su pedido' })).toContainText('3 platos · 7,50 €');
   await page.getByRole('button', { name: 'Ver mi pedido' }).click();
   await page.locator('.linea[data-plato="Café con leche"]').getByLabel('Nota para cocina (opcional)').fill('uno descafeinado');
-}
-
-/** Texto ≥ 18 px en todos los textos visibles de la vista del pedido. */
-async function textoLegible(page, selector) {
-  const pequenos = await page.$$eval(selector, (els) =>
-    els
-      .filter((e) => e.offsetParent !== null && e.textContent.trim())
-      .map((e) => ({ t: e.textContent.trim().slice(0, 30), px: parseFloat(getComputedStyle(e).fontSize) }))
-      .filter((x) => x.px < 18),
-  );
-  expect(pequenos, 'texto de al menos 18 px').toEqual([]);
-}
-
-/** Todos los botones tienen nombre accesible. */
-async function botonesConNombre(page) {
-  const sinNombre = await page.$$eval('button', (bs) =>
-    bs.filter((b) => b.offsetParent !== null && !(b.getAttribute('aria-label') || b.textContent.trim())).length,
-  );
-  expect(sinNombre).toBe(0);
 }
 
 async function comprobarVista(page, selectorTexto) {
@@ -76,18 +64,32 @@ test('Pedido desde la mesa: añadir, nota, resumen, confirmar y ver el número',
   await expect(page.getByRole('region', { name: 'Su pedido' })).toHaveCount(0);
 });
 
-test('El estado se actualiza sin recargar', async ({ page, baseURL, request }) => {
-  const mesa = await crearMesa(baseURL, 'Mesa estado e2e');
-  await prepararPedido(page, mesa);
-  await page.getByRole('button', { name: 'Confirmar pedido' }).click();
+/** Con la confirmación abierta, lleva el pedido al estado indicado como lo hace el panel de cocina. */
+async function cambiarEstadoSinRecargar(page, baseURL, estado, texto) {
   await expect(page.locator('.confirmacion__estado')).toHaveText('Estado: Recibido');
   const token = new URL(page.url()).pathname.split('/').at(-1);
   let recargas = 0;
   page.on('load', () => recargas++);
-  const r = await request.post(`/prueba/pedidos/${token}/estado`, { data: { estado: 'listo' } });
+  const api = await apiConSesion(baseURL);
+  const r = await api.post(`/api/cocina/pedidos/${token}/estado`, { data: { estado } });
   expect(r.ok()).toBe(true);
-  await expect(page.locator('.confirmacion__estado')).toHaveText('Estado: Listo');
+  await api.dispose();
+  await expect(page.locator('.confirmacion__estado')).toHaveText(`Estado: ${texto}`);
   expect(recargas).toBe(0);
+}
+
+test('El estado se actualiza sin recargar', async ({ page, baseURL }) => {
+  const mesa = await crearMesa(baseURL, 'Mesa estado e2e');
+  await prepararPedido(page, mesa);
+  await page.getByRole('button', { name: 'Confirmar pedido' }).click();
+  await cambiarEstadoSinRecargar(page, baseURL, 'en_preparacion', 'En preparación');
+});
+
+test('Pedido cancelado en el móvil', async ({ page, baseURL }) => {
+  const mesa = await crearMesa(baseURL, 'Mesa cancelada e2e');
+  await prepararPedido(page, mesa);
+  await page.getByRole('button', { name: 'Confirmar pedido' }).click();
+  await cambiarEstadoSinRecargar(page, baseURL, 'cancelado', 'Cancelado');
 });
 
 test('Plato archivado mientras se decide: aviso en el móvil de extremo a extremo', async ({ page, baseURL }) => {

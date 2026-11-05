@@ -14,11 +14,11 @@ const HASH = hashPassword(PASSWORD);
  * Crea una app aislada con BD en memoria y carpeta de datos temporal.
  * `reloj.t` permite adelantar el tiempo en los tests de caducidad.
  */
-export function crearEntorno({ produccion = false } = {}) {
+export function crearEntorno({ produccion = false, latidoSSE } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), 'cartaya-test-'));
   const db = abrirBD(':memory:');
   const reloj = { t: Date.parse('2026-11-04T10:00:00Z') };
-  const app = crearApp({ db, passwordHash: HASH, dataDir, produccion, ahora: () => reloj.t });
+  const app = crearApp({ db, passwordHash: HASH, dataDir, produccion, ahora: () => reloj.t, latidoSSE });
   return {
     app,
     db,
