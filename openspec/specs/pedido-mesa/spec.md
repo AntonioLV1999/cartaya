@@ -128,7 +128,7 @@ Confirmar un pedido MUST NOT requerir registro, inicio de sesión, email, teléf
 
 #### Scenario: El pedido no guarda datos del visitante
 - **WHEN** se revisa un pedido registrado
-- **THEN** solo contiene la mesa, la hora, el número de pedido, los platos con nombre, precio, cantidad y nota, el total y el estado, sin dirección IP ni datos del navegador
+- **THEN** solo contiene la mesa, la hora, el número de pedido, los platos con nombre, precio, cantidad y nota, el total, el estado y, si se ha cancelado, el momento de la cancelación, sin dirección IP ni datos del navegador
 
 ### Requirement: Pedido registrado para cocina
 Al confirmarse, el sistema MUST registrar el pedido como pedido de la mesa en estado "Recibido", con su número de pedido, la hora, y por cada plato el nombre y el precio vigentes en ese momento, la cantidad y la nota, y el total. El pedido registrado MUST NOT cambiar si después se edita o archiva un plato o se renombra o archiva la mesa.
@@ -157,7 +157,7 @@ Cada pedido registrado MUST recibir un número de pedido correlativo dentro del 
 - **THEN** recibe el número de pedido 1
 
 ### Requirement: Confirmación del pedido en el móvil
-Tras registrar el pedido, el móvil del visitante MUST mostrar la confirmación con el número de pedido en grande, el nombre de la mesa, los platos con cantidad y nota, el total y el estado del pedido, y MUST vaciar el pedido en curso. El estado mostrado MUST actualizarse sin recargar cuando cambie en el sistema.
+Tras registrar el pedido, el móvil del visitante MUST mostrar la confirmación con el número de pedido en grande, el nombre de la mesa, los platos con cantidad y nota, el total y el estado del pedido, y MUST vaciar el pedido en curso. El estado mostrado MUST ser "Recibido", "En preparación", "Servido" o "Cancelado" y MUST actualizarse sin recargar cuando cambie en el sistema.
 
 #### Scenario: Confirmación con número y estado
 - **GIVEN** el resumen de "Mesa 7" con 2 "Café con leche"
@@ -168,6 +168,11 @@ Tras registrar el pedido, el móvil del visitante MUST mostrar la confirmación 
 - **GIVEN** un visitante viendo la confirmación de su pedido en estado "Recibido"
 - **WHEN** el estado de ese pedido cambia en el sistema
 - **THEN** la confirmación muestra el estado nuevo sin que el visitante recargue
+
+#### Scenario: Pedido cancelado en el móvil
+- **GIVEN** un visitante viendo la confirmación de su pedido en estado "Recibido"
+- **WHEN** el personal cancela ese pedido
+- **THEN** la confirmación muestra el estado "Cancelado" sin que el visitante recargue
 
 ### Requirement: Mis pedidos de la mesa
 El móvil del visitante MUST recordar los pedidos que ha confirmado ese día desde esa mesa y permitir volver a ver la confirmación de cada uno, con su estado actual, tras recargar o volver a abrir la carta de la mesa. La confirmación de un pedido MUST NOT poder consultarse sin el enlace de esa confirmación, que MUST NOT poder deducirse de la mesa ni del número de pedido.
